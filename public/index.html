@@ -36,6 +36,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 @keyframes likePop{0%{transform:scale(1)}45%{transform:scale(1.45)}100%{transform:scale(1)}}
 .burst-heart{position:fixed;pointer-events:none;color:var(--pink);z-index:9999;font-weight:700;text-shadow:0 0 12px rgba(255,92,138,.8);animation:burstFly .75s ease-out forwards}
 @keyframes burstFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.7)}}
+/* 选手卡片点赞 */
+.pc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
+.pc-like{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--text-3);border:1px solid var(--line);border-radius:14px;padding:3px 9px;cursor:pointer;transition:all .15s;flex:none;font-family:var(--mono);background:rgba(255,255,255,.02)}
+.pc-like .pl-ico{color:var(--pink);font-size:12px}
+.pc-like:active{transform:scale(.88)}
+.pc-like.liked{border-color:rgba(255,92,138,.5);background:rgba(255,92,138,.1);color:var(--pink)}
+.d-like-bar{display:flex;align-items:center;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
+.d-like{display:inline-flex;align-items:center;gap:6px;background:rgba(255,92,138,.08);border:1px solid rgba(255,92,138,.4);color:var(--pink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:var(--mono);transition:all .15s}
+.d-like .pl-ico{font-size:15px}
+.d-like:active{transform:scale(.93)}
+.d-like.liked{background:rgba(255,92,138,.2);border-color:var(--pink)}
+.d-like-hint{font-size:10px;color:var(--text-3);font-family:var(--mono)}
 
 /* hero */
 .hero{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:16px}
@@ -511,8 +523,13 @@ async function toggleLike() {
   } catch (e) { toast('点赞失败：' + esc(e.message), true); }
 }
 function burstLike() {
-  const btn = document.getElementById('likeBtn');
-  const r = btn.getBoundingClientRect();
+  burstHeartsFromEl(document.getElementById('likeBtn'));
+  const ico = document.getElementById('likeIco');
+  if (ico) { ico.classList.remove('like-pop'); void ico.offsetWidth; ico.classList.add('like-pop'); }
+}
+function burstHeartsFromEl(el) {
+  if (!el) return;
+  const r = el.getBoundingClientRect();
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   for (let i = 0; i < 10; i++) {
     const h = document.createElement('span');
@@ -527,8 +544,30 @@ function burstLike() {
     document.body.appendChild(h);
     setTimeout(() => h.remove(), 800);
   }
-  const ico = document.getElementById('likeIco');
-  ico.classList.remove('like-pop'); void ico.offsetWidth; ico.classList.add('like-pop');
+}
+/* ===== 选手点赞：每人每天对同一位选手一次 ===== */
+async function togglePlayerLike(pid) {
+  if (!ME) { toast('登录后即可点赞'); return; }
+  const p = players.find(x => x.id === pid);
+  if (!p) return;
+  if (p.liked_today) { toast('今天已经给 TA 点过赞啦 ♥'); return; }
+  try {
+    const d = await api('/players/' + pid + '/like', { method: 'POST' });
+    if (d.ok) {
+      p.like_count = d.like_count; p.liked_today = true;
+      updateLikeUI(pid, d.like_count, true);
+      burstHeartsFromEl(document.querySelector(`[data-plbtn="${pid}"]`));
+      toast('点赞成功 ♥');
+    }
+  } catch (e) { toast('点赞失败：' + esc(e.message), true); }
+}
+function updateLikeUI(pid, count, liked) {
+  document.querySelectorAll(`[data-pl="${pid}"]`).forEach(el => { el.textContent = count; });
+  document.querySelectorAll(`[data-plbtn="${pid}"]`).forEach(btn => {
+    btn.classList.toggle('liked', liked);
+    const ico = btn.querySelector('.pl-ico');
+    if (ico) ico.textContent = liked ? '♥' : '♡';
+  });
 }
 async function loadTeams() {
   try {
@@ -626,7 +665,12 @@ function renderGrid() {
       </div>
       <div class="pc-intro">${esc(p.intro || '暂无自我介绍')}</div>
       ${(p.tags || '').split(/\s+/).filter(Boolean).length ? `<div class="pc-tags">${(p.tags || '').split(/\s+/).filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
-      <div class="pc-status${claimed ? ' claimed-txt' : ''}">${claimed ? '■ 已被认领 · 点击查看' : '□ 点击查看 / 认领'}</div>
+      <div class="pc-foot">
+        <span class="pc-status${claimed ? ' claimed-txt' : ''}">${claimed ? '■ 已被认领 · 点击查看' : '□ 点击查看 / 认领'}</span>
+        <span class="pc-like${p.liked_today ? ' liked' : ''}" data-plbtn="${p.id}" onclick="event.stopPropagation(); togglePlayerLike(${p.id})" title="给 TA 点赞">
+          <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span><span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
+        </span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -676,6 +720,12 @@ function openPlayerDetail(pid) {
       <div class="d-intro">${p.intro ? linkify(p.intro) : '暂无自我介绍'}</div>
       ${links}
       ${contactBox}
+      <div class="d-like-bar">
+        <button class="d-like${p.liked_today ? ' liked' : ''}" data-plbtn="${p.id}" onclick="togglePlayerLike(${p.id})">
+          <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span> 给 TA 点赞 <span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
+        </button>
+        <span class="d-like-hint">每人每天可给同一位选手点 1 个赞</span>
+      </div>
       <div class="d-status">${claimed
         ? '<b>■ 已被认领</b> — 想认识 TA？点击上方联系方式直接联系，或到<b>组队广场</b>向 TA 的队伍发起申请。'
         : '<b>□ 尚未认领</b> — 如果你就是本人，认领后即可编辑自己的资料、参与组队；如非本人也可先查看。'}

@@ -130,6 +130,14 @@ CREATE TABLE IF NOT EXISTS site_likes (
   user_id INTEGER NOT NULL UNIQUE,
   created_at TEXT DEFAULT (datetime('now','localtime'))
 );
+CREATE TABLE IF NOT EXISTS player_likes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  target_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  like_date TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now','localtime')),
+  UNIQUE(target_id, user_id, like_date)
+);
 `;
 
 /* PG 版 DDL：逐条执行（pg 不支持多语句 query） */
@@ -174,7 +182,12 @@ const DDL_PG = [
     created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `,
   `CREATE TABLE IF NOT EXISTS site_likes (
     id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL UNIQUE,
-    created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `
+    created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `,
+  `CREATE TABLE IF NOT EXISTS player_likes (
+    id SERIAL PRIMARY KEY, target_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+    like_date TEXT NOT NULL,
+    created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS')),
+    UNIQUE(target_id, user_id, like_date)) `
 ];
 
 /* 老库升级：补列（两种模式均幂等） */
@@ -203,7 +216,7 @@ async function migrate() {
 }
 
 /* ===== 数据导入：优先 export.json（真实数据快照），其次内置 seed ===== */
-const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'waiting_pool', 'site_likes'];
+const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'waiting_pool', 'site_likes', 'player_likes'];
 
 async function importExportJson() {
   const f = path.join(__dirname, '..', 'data', 'export.json');

@@ -128,14 +128,38 @@ const wrap = fn => (req, res) => {
 };
 
 /* ===== 公开：选手名单 / 赛程 / 公告 ===== */
+const bjToday = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 app.get('/api/players', wrap(async (req, res) => {
   const list = await store.all('SELECT * FROM players WHERE retired != 1 ORDER BY id');
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
+  const likeRows = await store.all('SELECT target_id, COUNT(*) AS c FROM player_likes GROUP BY target_id');
+  const likeMap = new Map(likeRows.map(r => [r.target_id, r.c]));
+  let likedTodaySet = new Set();
+  if (me) {
+    const mine = await store.all('SELECT target_id FROM player_likes WHERE user_id = ? AND like_date = ?', me.id, bjToday());
+    likedTodaySet = new Set(mine.map(r => r.target_id));
+  }
   res.json({ ok: true, players: list.map(p => {
     const pub = publicPlayer(p);
+    pub.like_count = likeMap.get(p.id) || 0;
+    pub.liked_today = likedTodaySet.has(p.id);
     if (me && p.contact) pub.contact = decContact(p.contact);
     return pub;
   }) });
+}));
+/* 选手点赞：每人每天对同一人一次（北京时间自然日） */
+app.post('/api/players/:id/like', wrap(async (req, res) => {
+  const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
+  if (!me) return res.status(401).json({ ok: false, msg: '登录后即可点赞' });
+  const pid = Number(req.params.id);
+  if (!pid) return res.status(400).json({ ok: false, msg: '参数错误' });
+  const t = bjToday();
+  const countOf = async () => (await store.get('SELECT COUNT(*) AS c FROM player_likes WHERE target_id = ?', pid)).c;
+  const mine = await store.get('SELECT id FROM player_likes WHERE target_id = ? AND user_id = ? AND like_date = ?', pid, me.id, t);
+  if (mine) return res.json({ ok: true, like_count: await countOf(), liked_today: true, already: true });
+  try { await store.run('INSERT INTO player_likes (target_id, user_id, like_date) VALUES (?, ?, ?)', pid, me.id, t); }
+  catch (e) { return res.json({ ok: true, like_count: await countOf(), liked_today: true, already: true }); }
+  res.json({ ok: true, like_count: await countOf(), liked_today: true, already: false });
 }));
 
 /* ===== 站点点赞（每人一赞，幂等） ===== */
