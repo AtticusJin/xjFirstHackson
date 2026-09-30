@@ -45,6 +45,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .pc-like .pl-ico{color:var(--pink);font-size:12px}
 .pc-like:active{transform:scale(.88)}
 .pc-like.liked{border-color:rgba(255,92,138,.5);background:rgba(255,92,138,.1);color:var(--pink)}
+/* 选手资料被查看次数 */
+.pc-view{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--text-3);border:1px solid var(--line);border-radius:14px;padding:3px 9px;flex:none;font-family:var(--mono);background:rgba(255,255,255,.02);cursor:default}
+.pc-view svg{color:var(--green);flex:none}
+.d-view{display:inline-flex;align-items:center;gap:6px;background:rgba(74,222,155,.08);border:1px solid rgba(74,222,155,.35);color:var(--text-2);border-radius:10px;padding:8px 14px;font-size:13px;font-family:var(--mono);cursor:default}
+.d-view svg{color:var(--green);flex:none}
 .friend-tag{font-size:12px;margin-left:4px;filter:drop-shadow(0 0 6px rgba(255,215,90,.7))}
 .like-btn.shake{animation:xjshake .35s ease}
 @keyframes xjshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
@@ -701,6 +706,10 @@ function renderGrid() {
         <span class="pc-like${p.liked_today ? ' liked' : ''}" data-plbtn="${p.id}" onclick="event.stopPropagation(); togglePlayerLike(${p.id})" title="给 TA 点赞">
           <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span><span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
         </span>
+        <span class="pc-view" title="资料被查看次数">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="pv-num" data-pv="${p.id}">${p.view_count || 0}</span>
+        </span>
       </div>
     </div>`;
   }).join('');
@@ -732,6 +741,13 @@ async function copyText(t, msg) {
 function openPlayerDetail(pid) {
   const p = players.find(x => x.id === pid);
   if (!p) return;
+  // 资料被查看：上报 +1 并即时刷新卡片与弹窗数字（同设备 5 分钟去重，服务端裁决）
+  api('/players/' + pid + '/view', { method: 'POST' }).then(d => {
+    if (d && d.ok) {
+      p.view_count = d.count;
+      document.querySelectorAll('[data-pv="' + pid + '"]').forEach(el => el.textContent = d.count);
+    }
+  }).catch(() => {});
   const claimed = p.status === 'claimed';
   const urls = extractUrls((p.intro || '') + ' ' + (p.tags || ''));
   const links = urls.length ? `<div class="d-links">${urls.map(u => `
@@ -755,6 +771,10 @@ function openPlayerDetail(pid) {
         <button class="d-like${p.liked_today ? ' liked' : ''}" data-plbtn="${p.id}" onclick="togglePlayerLike(${p.id})">
           <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span> <span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
         </button>
+        <span class="d-view" title="资料被查看次数">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="pv-num" data-pv="${p.id}">${p.view_count || 0}</span>
+        </span>
         <span class="d-like-hint">每人每天可给同一位选手点 1 个赞</span>
       </div>
       <div class="d-status">${claimed

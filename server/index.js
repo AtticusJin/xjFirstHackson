@@ -165,6 +165,8 @@ app.get('/api/players', wrap(async (req, res) => {
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
   const likeRows = await store.all('SELECT target_id, COUNT(*) AS c FROM player_likes GROUP BY target_id');
   const likeMap = new Map(likeRows.map(r => [r.target_id, r.c]));
+  const viewRows = await store.all('SELECT target_id, COUNT(*) AS c FROM player_views GROUP BY target_id');
+  const viewMap = new Map(viewRows.map(r => [r.target_id, r.c]));
   let likedTodaySet = new Set();
   let friendSet = new Set();
   if (me) {
@@ -183,12 +185,26 @@ app.get('/api/players', wrap(async (req, res) => {
   res.json({ ok: true, players: list.map(p => {
     const pub = publicPlayer(p);
     pub.like_count = likeMap.get(p.id) || 0;
+    pub.view_count = viewMap.get(p.id) || 0;
     pub.liked_today = likedTodaySet.has(p.id);
     pub.is_friend = friendSet.has(p.id);
     if (me && p.contact) pub.contact = decContact(p.contact);
     return pub;
   }) });
 }));
+/* 选手资料查看计数：同 IP 5 分钟内只计一次 */
+app.post('/api/players/:id/view', wrap(async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const ip = clientIp(req);
+  if (ip) {
+    const ts = Date.now();
+    const recent = await store.get('SELECT 1 FROM player_views WHERE target_id = ? AND ip = ? AND ts > ?', targetId, ip, String(ts - 300000));
+    if (!recent) await store.run('INSERT INTO player_views (target_id, ip, ts) VALUES (?, ?, ?)', targetId, ip, String(ts));
+  }
+  const r = await store.get('SELECT COUNT(*) AS n FROM player_views WHERE target_id = ?', targetId);
+  res.json({ ok: true, count: r ? r.n : 0 });
+}));
+
 /* 选手点赞：每人每天对同一人一次（北京时间自然日） */
 app.post('/api/players/:id/like', wrap(async (req, res) => {
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
