@@ -665,7 +665,7 @@ function renderGrid() {
     const claimed = p.status === 'claimed';
     return `<div class="player-card${claimed ? ' claimed' : ''}" data-id="${p.id}" onclick="openPlayerDetail(${p.id})">
       <div class="pc-top">
-        ${p.avatar ? `<img class="pc-avatar" src="${esc(p.avatar)}" alt="">` : `<div class="pc-avatar" style="background:var(--card);border:1px solid var(--line)"></div>`}
+        ${p.avatar ? `<img class="pc-avatar" src="${esc(p.avatar)}" alt="" loading="lazy" decoding="async">` : `<div class="pc-avatar" style="background:var(--card);border:1px solid var(--line)"></div>`}
         <div class="pc-id">
           <div class="pc-name">${esc(p.name)}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
           ${p.nickname ? `<div class="pc-handle">@${esc(p.nickname)}</div>` : ''}
@@ -752,7 +752,7 @@ function openPlayersList() {
     <p class="sub">${ME ? '点击选手查看完整资料与联系方式' : '登录后可查看联系方式，点击选手查看资料'}</p>
     <div class="me-list">${list.map(p => `
       <div class="ann t-member" onclick="openPlayerDetail(${p.id})"><div class="a-top">
-        ${p.avatar ? `<img src="${esc(p.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
+        ${p.avatar ? `<img src="${esc(p.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
         <span class="a-title">${esc(p.name)}</span>
         ${p.nickname ? `<span style="font-size:10px;color:var(--text-3)">@${esc(p.nickname)}</span>` : ''}
         ${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}
@@ -845,7 +845,7 @@ function renderTeams() {
       ${t.role_needs ? `<div class="t-needs">需要：<b>${esc(t.role_needs)}</b></div>` : ''}
       <div class="progress-bar"><i style="width:0" data-pct="${s.pct}"></i></div>
       <div class="t-foot">
-        <div class="avatar-stack">${t.members.slice(0, 6).map(m => m.avatar ? `<img src="${esc(m.avatar)}" alt="">` : '<span class="ph">?</span>').join('')}</div>
+        <div class="avatar-stack">${t.members.slice(0, 6).map(m => m.avatar ? `<img src="${esc(m.avatar)}" alt="" loading="lazy" decoding="async">` : '<span class="ph">?</span>').join('')}</div>
         <span class="t-count">${t.member_count} 人 · 队长 ${esc(t.leader?.name || '—')}</span>
       </div>
     </div>`;
@@ -877,7 +877,7 @@ function renderMe() {
     ${(() => { const friends = players.filter(x => x.is_friend); return friends.length ? `<div class="me-section"><div class="section-title" style="margin-top:0">我的好友 <span class="n">${friends.length}</span></div>
       <div class="me-list">${friends.map(f => `
         <div class="ann t-member" onclick="openPlayerDetail(${f.id})"><div class="a-top">
-          ${f.avatar ? `<img src="${esc(f.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
+          ${f.avatar ? `<img src="${esc(f.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
           <span class="a-title">${esc(f.name)}</span>
           ${f.grade ? `<span class="d-tag">${esc(f.grade)}</span>` : ''}
           ${roleList(f.role).slice(0, 2).map(r => `<span class="d-role">${esc(r)}</span>`).join('')}
@@ -1292,11 +1292,11 @@ function pickAvatarFile(inp) {
   reader.onload = () => {
     const img = new Image();
     img.onload = () => {
-      const max = 512; let w = img.width, h = img.height;
+      const max = 320; let w = img.width, h = img.height;
       if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
       const c = document.createElement('canvas'); c.width = w; c.height = h;
       c.getContext('2d').drawImage(img, 0, 0, w, h);
-      pendingAvatar = c.toDataURL('image/jpeg', 0.85);
+      pendingAvatar = c.toDataURL('image/jpeg', 0.8);
       const av = document.getElementById('pfAvatar');
       if (av) av.value = pendingAvatar;
       const box = document.getElementById('pfAvatarPrev');
@@ -1410,7 +1410,7 @@ function openTeam(id) {
     <div class="section-title" style="margin:16px 0 8px">成员 ${t.member_count}<span style="font-size:10px;color:var(--text-3);font-weight:400">（点击查看成员资料）</span></div>
     <div class="me-list">${t.members.map(m => `
       <div class="ann t-member" onclick="openPlayerDetail(${m.id})"><div class="a-top">
-        ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
+        ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
         <span class="a-title">${esc(m.name)}</span>
         <span style="font-size:10px;color:var(--text-3)">${esc(m.role || '')}</span>
         ${m.id === t.leader?.id ? `<span class="a-tag" style="background:rgba(255,180,84,.1);color:var(--amber);border-color:rgba(255,180,84,.3)">队长</span>` : ''}
