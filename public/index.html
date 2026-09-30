@@ -872,10 +872,10 @@ function renderMe() {
       <div class="who">
         ${p ? `<b>${esc(p.name)}</b>${p.self_registered ? ' <span class="tag-free">新注册选手</span>' : ''}
           <span class="role">${esc(roleList(p.role).join(' / ') || '未标注方向')}${p.grade ? ' · ' + esc(p.grade) : ''}</span>
-          <p title="${esc(p.intro || '')}">${esc(p.intro || '还没有自我介绍，去完善你的资料吧。')}</p>`
+${p.intro ? '' : '<p>还没有自我介绍，去完善你的资料吧。</p>'}`
         : `<b>已登录</b><p>当前账号（${esc(ME.user.email)}）还没有选手身份，请先认领或注册。</p>`}
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
         <button class="btn ghost sm" onclick="openEditProfile()">✎ 编辑资料</button>
         <button class="btn ghost sm" onclick="shareCard()">↗ 分享名片</button>
       </div>
