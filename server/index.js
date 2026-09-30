@@ -4,6 +4,7 @@
    运行：npm install && npm start（默认 http://localhost:3000）*/
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const store = require('./store');
 const { sendCode, genCode } = require('./mail');
@@ -160,6 +161,21 @@ app.post('/api/players/:id/like', wrap(async (req, res) => {
   try { await store.run('INSERT INTO player_likes (target_id, user_id, like_date) VALUES (?, ?, ?)', pid, me.id, t); }
   catch (e) { return res.json({ ok: true, like_count: await countOf(), liked_today: true, already: true }); }
   res.json({ ok: true, like_count: await countOf(), liked_today: true, already: false });
+}));
+/* 头像上传：base64 → 本地 public/uploads/avatars（前端已压缩到 ≤512px） */
+app.post('/api/upload/avatar', requirePlayer, express.json({ limit: '6mb' }), wrap(async (req, res) => {
+  const data = req.body && req.body.data;
+  if (!data || typeof data !== 'string') return res.status(400).json({ ok: false, msg: '缺少图片数据' });
+  const m = data.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/i);
+  if (!m) return res.status(400).json({ ok: false, msg: '仅支持 PNG / JPG / WebP / GIF 图片' });
+  const buf = Buffer.from(m[2], 'base64');
+  if (!buf.length || buf.length > 2 * 1024 * 1024) return res.status(400).json({ ok: false, msg: '图片不能超过 2MB' });
+  const dir = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
+  fs.mkdirSync(dir, { recursive: true });
+  const ext = (m[1].toLowerCase() === 'jpeg' ? 'jpg' : m[1].toLowerCase());
+  const name = `u${req.user.id}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
+  fs.writeFileSync(path.join(dir, name), buf);
+  res.json({ ok: true, url: '/uploads/avatars/' + name });
 }));
 
 /* ===== 站点点赞：登录用户一人一赞，游客按 IP 一赞（免登录可点） ===== */

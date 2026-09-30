@@ -48,6 +48,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .d-like:active{transform:scale(.93)}
 .d-like.liked{background:rgba(255,92,138,.2);border-color:var(--pink)}
 .d-like-hint{font-size:10px;color:var(--text-3);font-family:var(--mono)}
+/* 头像相册上传 */
+.avatar-pick img{width:72px;height:72px;border-radius:16px;object-fit:cover;border:1px solid var(--cyan)}
+.avatar-pick .ap-empty{width:72px;height:72px;border-radius:16px;background:var(--card);border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:10px}
 
 /* hero */
 .hero{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:16px}
@@ -1245,8 +1248,16 @@ function openEditProfile() {
       <div class="tag-input-line" id="tagInputLine" style="display:none"><input id="tagInput" placeholder="输入标签后点完成" maxlength="12" autocomplete="off"><button class="btn ghost sm" onclick="confirmTagInput()">完成</button></div>
       <div class="tag-tpl">快速添加：${TAG_TPL.map(t => `<span onclick="addTag('${t}')">${esc(t)}</span>`).join('')}</div></div>
     <div class="field"><label>联系方式（仅队长可见）</label><input id="pfContact" placeholder="手机 / 邮箱 / 其他" value="${esc(p.contact || '')}"></div>
-    <div class="field"><label>头像链接</label><input id="pfAvatar" placeholder="https://…" value="${esc(p.avatar || '')}"></div>
-    <div class="field"><label>或用默认头像</label>
+    <div class="field"><label>头像</label>
+      <div class="avatar-pick" id="pfAvatarPrev">
+        ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : '<div class="ap-empty"></div>'}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <input type="file" id="pfAvatarFile" accept="image/*" style="display:none" onchange="pickAvatarFile(this)">
+        <button class="btn ghost sm" onclick="document.getElementById('pfAvatarFile').click()">📷 从相册选择</button>
+        <button class="btn ghost sm" onclick="clearAvatarPick()">清除</button>
+      </div>
+      <input id="pfAvatar" placeholder="或粘贴图片链接 https://…" value="${esc(p.avatar || '')}" style="margin-top:8px">
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${AV_STOCK.map((u, i) => `<img src="${u}" onclick="pickAvatar(this)" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--line);cursor:pointer" data-url="${u}" alt="默认${i + 1}">`).join('')}</div></div>
     <div class="err-msg" id="modalErr"></div>
     <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveProfile()">保存资料</button></div>`);
@@ -1256,7 +1267,48 @@ function pickAvatar(img) {
   const inp = document.getElementById('pfAvatar');
   if (inp) { inp.value = img.dataset.url; document.querySelectorAll('#modalBox img[data-url]').forEach(x => x.style.borderColor = 'var(--line)'); img.style.borderColor = 'var(--cyan)'; }
 }
+let pendingAvatar = '';
+function pickAvatarFile(inp) {
+  const f = inp.files && inp.files[0];
+  if (!f) return;
+  if (!/^image\//.test(f.type)) return err('请选择图片文件');
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 512; let w = img.width, h = img.height;
+      if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      pendingAvatar = c.toDataURL('image/jpeg', 0.85);
+      const av = document.getElementById('pfAvatar');
+      if (av) av.value = pendingAvatar;
+      const box = document.getElementById('pfAvatarPrev');
+      if (box) box.innerHTML = `<img src="${pendingAvatar}" alt="">`;
+      toast('头像已选择，保存后生效');
+    };
+    img.onerror = () => err('图片读取失败');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+}
+function clearAvatarPick() {
+  pendingAvatar = '';
+  const av = document.getElementById('pfAvatar');
+  if (av) av.value = '';
+  const inp = document.getElementById('pfAvatarFile');
+  if (inp) inp.value = '';
+  const box = document.getElementById('pfAvatarPrev');
+  if (box) box.innerHTML = '<div class="ap-empty"></div>';
+}
 async function saveProfile() {
+  let avatar = document.getElementById('pfAvatar').value.trim();
+  if (avatar.startsWith('data:')) {
+    try {
+      const up = await api('/upload/avatar', { method: 'POST', body: JSON.stringify({ data: avatar }) });
+      if (up.ok) avatar = up.url; else return err(up.msg || '头像上传失败');
+    } catch (e) { return err('头像上传失败：' + e.message); }
+  }
   const body = {
     name: document.getElementById('pfName').value.trim(),
     nickname: document.getElementById('pfNick').value.trim(),
@@ -1265,7 +1317,7 @@ async function saveProfile() {
     intro: document.getElementById('pfIntro').value.trim(),
     tags: TAG_LIST.join(' '),
     contact: document.getElementById('pfContact').value.trim(),
-    avatar: document.getElementById('pfAvatar').value.trim()
+    avatar
   };
   if (!body.name) return err('姓名不能为空');
   try {
