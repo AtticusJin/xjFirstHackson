@@ -284,7 +284,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .tag-input-line{display:flex;gap:8px;margin-top:8px}
 .tag-input-line input{flex:1;min-width:0}
 .tag-tpl{font-size:10px;color:var(--text-3);margin-top:9px;line-height:1.9}
-.tag-tpl span{color:var(--cyan);cursor:pointer;border:1px solid rgba(70,240,200,.22);background:rgba(70,240,200,.06);padding:2px 9px;border-radius:6px;margin-right:6px;font-family:var(--mono)}
+.tag-tpl span{color:var(--cyan);cursor:pointer;border:1px solid rgba(70,240,200,.22);background:rgba(70,240,200,.06);padding:2px 9px;border-radius:6px;margin-right:6px;font-family:var(--mono);white-space:nowrap}
 .tag-tpl span:active{border-color:var(--cyan)}
 /* 创建小队 */
 .btn.block{width:100%;justify-content:center}
@@ -1276,7 +1276,7 @@ function openEditProfile() {
         <button class="btn ghost sm" onclick="document.getElementById('pfAvatarFile').click()">📷 从相册选择</button>
         <button class="btn ghost sm" onclick="clearAvatarPick()">清除</button>
       </div>
-      <input id="pfAvatar" placeholder="或粘贴图片链接 https://…" value="${esc(p.avatar || '')}" style="margin-top:8px">
+      <textarea id="pfAvatar" placeholder="或粘贴图片链接 https://…" rows="2" style="margin-top:8px;min-height:0;height:56px;resize:none;font-size:12px;line-height:1.5">${esc(p.avatar || '')}</textarea>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${AV_STOCK.map((u, i) => `<img src="${u}" onclick="pickAvatar(this)" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--line);cursor:pointer" data-url="${u}" alt="默认${i + 1}">`).join('')}</div></div>
     <div class="err-msg" id="modalErr"></div>
     <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveProfile()">保存资料</button></div>`);
