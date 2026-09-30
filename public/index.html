@@ -170,6 +170,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .ann{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
 .ann:active{border-color:var(--cyan)}
 .t-member:hover{border-color:rgba(70,240,200,.35)}
+/* 组队广场 · 全部成员入口 */
+.plaza-entry{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(120deg,rgba(139,124,255,.12),rgba(70,240,200,.08));border:1px solid rgba(139,124,255,.3);border-radius:12px;padding:12px 16px;cursor:pointer;margin:14px 0 4px;transition:border-color .15s}
+.plaza-entry:active{border-color:var(--violet)}
+.pe-title{font-size:14px;font-weight:800;color:var(--text-1)}
+.pe-sub{font-size:10px;color:var(--text-3);font-family:var(--mono);margin-top:2px}
+.pe-arrow{font-size:20px;color:var(--violet)}
 .a-more{font-size:10px;color:var(--violet);font-family:var(--mono);margin-top:8px}
 .ann .a-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ann .a-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(139,124,255,.1);color:var(--violet);border:1px solid rgba(139,124,255,.3);flex:none}
@@ -360,6 +366,13 @@ footer{margin-top:28px;text-align:center;font-family:var(--mono);font-size:9px;c
   <!-- ===== 组队广场 ===== -->
   <main id="view-teams" style="display:none">
     <div class="section-title">组队广场 <span class="n" id="teamCount"></span></div>
+    <div class="plaza-entry" onclick="openPlayersList()">
+      <div>
+        <div class="pe-title">👥 全部成员资料</div>
+        <div class="pe-sub" id="plazaEntrySub">查看所有公开资料的选手</div>
+      </div>
+      <div class="pe-arrow">›</div>
+    </div>
     <div id="createWrap" style="display:none;margin:14px 0">
       <button id="btnCreateTeam" class="btn primary block" onclick="openCreateTeam()">＋ 创建小队</button>
       <div id="inTeamHint" class="hint" style="display:none">你已在小队中，创建已锁定</div>
@@ -602,6 +615,26 @@ function openPlayerDetail(pid) {
         : '<b>□ 尚未认领</b> — 如果你就是本人，认领后即可编辑自己的资料、参与组队；如非本人也可先查看。'}
       </div>
       ${claimed ? '' : `<div class="btn-row"><button class="btn primary" onclick="startClaim(${p.id})">认领身份 →</button></div>`}
+    </div>`);
+}
+function openPlayersList() {
+  const list = players.filter(p => !p.retired);
+  const sub = document.getElementById('plazaEntrySub');
+  if (sub) sub.textContent = `${list.length} 位选手公开资料 · 点开查看`;
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>全部成员资料 <span class="n">${list.length}</span></h3>
+    <p class="sub">${ME ? '点击选手查看完整资料与联系方式' : '登录后可查看联系方式，点击选手查看资料'}</p>
+    <div class="me-list">${list.map(p => `
+      <div class="ann t-member" onclick="openPlayerDetail(${p.id})"><div class="a-top">
+        ${p.avatar ? `<img src="${esc(p.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
+        <span class="a-title">${esc(p.name)}</span>
+        ${p.nickname ? `<span style="font-size:10px;color:var(--text-3)">@${esc(p.nickname)}</span>` : ''}
+        ${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}
+        ${roleList(p.role).slice(0, 2).map(r => `<span class="d-role">${esc(r)}</span>`).join('')}
+      </div>
+      <div class="a-body" style="font-size:11px;color:var(--text-3)">${p.intro ? esc(p.intro).slice(0, 60) : '暂无自我介绍'}</div>
+      </div>`).join('') || '<div class="empty">暂无公开资料选手</div>'}
     </div>`);
 }
 function onSearch() {
@@ -1196,7 +1229,7 @@ function openTeam(id) {
 
     <div class="section-title" style="margin:16px 0 8px">成员 ${t.member_count}<span style="font-size:10px;color:var(--text-3);font-weight:400">（点击查看成员资料）</span></div>
     <div class="me-list">${t.members.map(m => `
-      <div class="ann t-member" onclick="openDetail(${m.id})"><div class="a-top">
+      <div class="ann t-member" onclick="openPlayerDetail(${m.id})"><div class="a-top">
         ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
         <span class="a-title">${esc(m.name)}</span>
         <span style="font-size:10px;color:var(--text-3)">${esc(m.role || '')}</span>
