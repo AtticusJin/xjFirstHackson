@@ -508,8 +508,7 @@ async function loadLikes() {
   } catch (e) { /* 接口暂不可用则不渲染 */ }
 }
 async function toggleLike() {
-  if (!ME) { toast('登录后即可为黑客松点赞'); return; }
-  if (liked) { toast('你已经为黑客松点过赞啦 ♥'); return; }
+  if (liked) { toast('已经为黑客松点过赞啦 ♥'); return; }
   try {
     const d = await api('/site/like', { method: 'POST' });
     if (d.ok) {
@@ -952,10 +951,7 @@ function loginTab(tab) {
   } else if (tab === 'claim') {
     body.innerHTML = `
       <p class="sub">你在飞书报名名单里？回到首页认领名单找到自己 → 点击认领 → 邮箱验证码登录即完成绑定。</p>
-      <div class="btn-row"><button class="btn primary" onclick="closeModal(); showTab('home')">去认领名单 →</button></div>
-      <div class="demo-line"><button class="btn ghost" onclick="demoLogin('jinxilin')">⚡ 体验登录 · 金熙林</button><span>模拟账号，免邮箱</span></div>
-      <div class="demo-line"><button class="btn ghost" onclick="demoLogin('bot')">🤖 体验登录 · 回响 Bot</button><span>模拟账号，免邮箱</span></div>
-      <p class="sub dim" style="margin-top:10px;font-size:12px">模拟账号仅试验期可用，正式发布前将全部清除。</p>`;
+      <div class="btn-row"><button class="btn primary" onclick="closeModal(); showTab('home')">去认领名单 →</button></div>`;
   } else if (tab === 'admin') {
     body.innerHTML = `
       <p class="sub">管理员登录：可管理参赛队员、查看认领情况与队伍赛程。</p>

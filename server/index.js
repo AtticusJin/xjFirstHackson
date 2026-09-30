@@ -130,7 +130,7 @@ const wrap = fn => (req, res) => {
 /* ===== 公开：选手名单 / 赛程 / 公告 ===== */
 const bjToday = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 app.get('/api/players', wrap(async (req, res) => {
-  const list = await store.all('SELECT * FROM players WHERE retired != 1 ORDER BY id');
+  const list = await store.all('SELECT * FROM players WHERE retired != 1 AND (is_demo IS NULL OR is_demo != 1) ORDER BY id');
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
   const likeRows = await store.all('SELECT target_id, COUNT(*) AS c FROM player_likes GROUP BY target_id');
   const likeMap = new Map(likeRows.map(r => [r.target_id, r.c]));
@@ -162,26 +162,47 @@ app.post('/api/players/:id/like', wrap(async (req, res) => {
   res.json({ ok: true, like_count: await countOf(), liked_today: true, already: false });
 }));
 
-/* ===== 站点点赞（每人一赞，幂等） ===== */
+/* ===== 站点点赞：登录用户一人一赞，游客按 IP 一赞（免登录可点） ===== */
+const clientIp = req => String(req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '').slice(0, 64);
 app.get('/api/site/likes', wrap(async (req, res) => {
-  const row = await store.get('SELECT COUNT(*) AS c FROM site_likes');
+  const [u, i] = await Promise.all([
+    store.get('SELECT COUNT(*) AS c FROM site_likes'),
+    store.get('SELECT COUNT(*) AS c FROM site_like_ips')
+  ]);
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
   let liked = false;
   if (me) {
     const mine = await store.get('SELECT id FROM site_likes WHERE user_id = ?', me.id);
     liked = !!mine;
+  } else {
+    const mine = await store.get('SELECT id FROM site_like_ips WHERE ip = ?', clientIp(req));
+    liked = !!mine;
   }
-  res.json({ ok: true, count: row ? row.c : 0, liked });
+  res.json({ ok: true, count: (u ? u.c : 0) + (i ? i.c : 0), liked });
 }));
 app.post('/api/site/like', wrap(async (req, res) => {
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
-  if (!me) return res.status(401).json({ ok: false, msg: '登录后即可点赞' });
-  const countRow = async () => (await store.get('SELECT COUNT(*) AS c FROM site_likes')).c;
-  const mine = await store.get('SELECT id FROM site_likes WHERE user_id = ?', me.id);
-  if (mine) return res.json({ ok: true, count: await countRow(), liked: true, already: true });
-  try { await store.run('INSERT INTO site_likes (user_id) VALUES (?)', me.id); }
-  catch (e) { return res.json({ ok: true, count: await countRow(), liked: true, already: true }); }
-  res.json({ ok: true, count: await countRow(), liked: true, already: false });
+  const countAll = async () => {
+    const [u, i] = await Promise.all([
+      store.get('SELECT COUNT(*) AS c FROM site_likes'),
+      store.get('SELECT COUNT(*) AS c FROM site_like_ips')
+    ]);
+    return (u ? u.c : 0) + (i ? i.c : 0);
+  };
+  if (me) {
+    const mine = await store.get('SELECT id FROM site_likes WHERE user_id = ?', me.id);
+    if (mine) return res.json({ ok: true, count: await countAll(), liked: true, already: true });
+    try { await store.run('INSERT INTO site_likes (user_id) VALUES (?)', me.id); }
+    catch (e) { return res.json({ ok: true, count: await countAll(), liked: true, already: true }); }
+    return res.json({ ok: true, count: await countAll(), liked: true, already: false });
+  }
+  const ip = clientIp(req);
+  if (!ip) return res.status(400).json({ ok: false, msg: '无法识别访问来源' });
+  const mine = await store.get('SELECT id FROM site_like_ips WHERE ip = ?', ip);
+  if (mine) return res.json({ ok: true, count: await countAll(), liked: true, already: true });
+  try { await store.run('INSERT INTO site_like_ips (ip) VALUES (?)', ip); }
+  catch (e) { return res.json({ ok: true, count: await countAll(), liked: true, already: true }); }
+  res.json({ ok: true, count: await countAll(), liked: true, already: false });
 }));
 
 app.get('/api/schedules', wrap(async (req, res) => {
