@@ -1006,7 +1006,7 @@ async function demoLogin(demo = 'jinxilin') {
     TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
     ME = d;
     closeModal();
-    toast(`已以「<b>${d.user.player.name}</b>」身份进入（试验期体验登录）`);
+    toast(`已以「<b>${d.user.player.name}</b>」身份进入`);
     renderUser(); refresh(); updateBadge(); showTab('me');
     setTimeout(() => openGuide('claim'), 600);
   } catch (e) { err(e.message); }
