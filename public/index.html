@@ -69,8 +69,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .hero-cta{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 
 /* 区块标题 */
-.section-title{display:flex;align-items:center;gap:10px;margin:22px 0 12px;font-family:var(--display);font-size:17px;letter-spacing:.5px}
-.section-title .n{font-family:var(--mono);font-size:10px;color:var(--text-3);border:1px solid var(--line);padding:2px 8px;border-radius:20px}
+.section-title{display:flex;align-items:center;gap:10px;margin:22px 0 12px;font-family:var(--display);font-size:20px;letter-spacing:.5px}
+.section-title .n{font-family:var(--mono);font-size:11px;color:var(--text-3);border:1px solid var(--line);padding:2px 8px;border-radius:20px}
 .section-title .act{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--cyan);cursor:pointer;background:none;border:1px solid rgba(70,240,200,.3);padding:5px 11px;border-radius:8px}
 .section-title .act:active{background:rgba(70,240,200,.1)}
 
@@ -175,7 +175,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 /* 赛程时间轴 */
 .timeline{display:grid;grid-template-columns:64px 24px minmax(0,1fr);gap:0;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:8px 14px 12px}
 .tl-row{display:contents}
-.tl-time{font-family:var(--mono);font-size:10px;color:var(--text-3);padding-top:20px;text-align:right}
+.tl-time{font-family:var(--mono);font-size:12px;color:var(--text-3);padding-top:20px;text-align:right}
 .tl-mid{display:flex;justify-content:center;position:relative;padding-top:12px}
 .tl-dot{width:13px;height:13px;border-radius:50%;background:var(--card);border:2px solid var(--line);z-index:2;flex:none}
 .tl-row.done .tl-dot{background:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(74,222,155,.5)}
@@ -184,10 +184,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .tl-row:last-child .tl-line{display:none}
 .tl-content{padding:12px 0 12px 4px;border-bottom:1px solid var(--line-soft)}
 .tl-row:last-child .tl-content{border-bottom:none}
-.tl-title{font-size:12px;font-weight:700}
+.tl-title{font-size:15px;font-weight:700}
 .tl-row.now .tl-title{color:var(--amber)}
-.tl-desc{font-size:10px;color:var(--text-2);margin-top:3px;line-height:1.6}
-.tl-badge{display:inline-block;font-family:var(--mono);font-size:8px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:1px}
+.tl-desc{font-size:13px;color:var(--text-2);margin-top:4px;line-height:1.7}
+.tl-badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;margin-left:6px;vertical-align:1px}
 .tl-row.done .tl-badge{background:rgba(74,222,155,.1);color:var(--green);border:1px solid rgba(74,222,155,.3)}
 .tl-row.now .tl-badge{background:rgba(255,180,84,.12);color:var(--amber);border:1px solid rgba(255,180,84,.4)}
 .tl-row.todo .tl-badge{background:var(--card);color:var(--text-3);border:1px solid var(--line)}
@@ -206,10 +206,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .pe-arrow{font-size:20px;color:var(--violet)}
 .a-more{font-size:10px;color:var(--violet);font-family:var(--mono);margin-top:8px}
 .ann .a-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ann .a-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(139,124,255,.1);color:var(--violet);border:1px solid rgba(139,124,255,.3);flex:none}
-.ann .a-title{font-size:12px;font-weight:700}
-.ann .a-body{font-size:11px;color:var(--text-2);margin-top:5px;line-height:1.7}
-.ann .a-time{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-left:auto;white-space:nowrap}
+.ann .a-tag{font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:4px;background:rgba(139,124,255,.1);color:var(--violet);border:1px solid rgba(139,124,255,.3);flex:none}
+.ann .a-title{font-size:15px;font-weight:700}
+.ann .a-body{font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.7}
+.ann .a-time{font-family:var(--mono);font-size:11px;color:var(--text-3);margin-left:auto;white-space:nowrap}
 
 /* 队伍卡片 */
 .team-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
@@ -806,9 +806,9 @@ function openAnnounce(id) {
     <button class="btn ghost sm" onclick="copyText(${JSON.stringify(u).replace(/"/g, '&quot;')})">复制</button></div>`).join('')}</div>` : '';
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
-    <h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="a-tag">${esc(a.tag)}</span>${esc(a.title)}</h3>
-    <p class="sub" style="margin-top:6px">${esc(a.time)}</p>
-    <div class="d-intro" style="margin-top:12px">${a.body ? linkify(a.body) : '暂无内容'}</div>
+    <h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:18px"><span class="a-tag">${esc(a.tag)}</span>${esc(a.title)}</h3>
+    <p class="sub" style="margin-top:6px;font-size:12px">${esc(a.time)}</p>
+    <div class="d-intro" style="margin-top:12px;font-size:14px;line-height:1.8">${a.body ? linkify(a.body) : '暂无内容'}</div>
     ${links}`);
 }
 
