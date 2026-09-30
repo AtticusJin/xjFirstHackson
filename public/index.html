@@ -779,17 +779,50 @@ function clearSearch() {
   renderGrid();
   if (inp) inp.focus();
 }
+/* 赛程状态自动切换：按当前时间自动标 done/now/todo（管理员可手动覆盖后端 status 字段兜底） */
+function autoScheduleStatus(s) {
+  const m = String(s.day || '').match(/10月(\d+)日/);
+  const now = new Date();
+  if (!m || now.getFullYear() !== 2026 || now.getMonth() !== 9) return s.status || 'todo';
+  const d = parseInt(m[1], 10);
+  const cur = now.getDate() * 1440 + now.getHours() * 60 + now.getMinutes();
+  const parseT = t => {
+    if (t == null || !String(t).trim()) return null;
+    t = String(t).trim();
+    if (t === '24:00') return { start: 1440, end: 1441 };
+    const mm = t.match(/^(\d{1,2}):(\d{2})/);
+    if (mm) return { start: +mm[1] * 60 + +mm[2], end: null };
+    const map = { '全天': [0, 1440], '上午': [480, 720], '中午': [720, 780], '下午': [780, 1080], '傍晚': [1020, 1140], '晚上': [1140, 1440] };
+    if (map[t]) return { start: map[t][0], end: map[t][1] };
+    return null;
+  };
+  const parts = String(s.time || '').split(/[–\-～~]/).map(x => x.trim()).filter(Boolean);
+  const a = parseT(parts[0]);
+  if (!a) return s.status || 'todo';
+  let start = a.start, end = a.end;
+  if (end == null) {
+    if (parts.length > 1) { const b = parseT(parts[1]); end = b ? (b.start < start ? b.start + 1440 : b.start) : start + 120; }
+    else end = start + 120;
+  }
+  const s0 = d * 1440 + start, e0 = d * 1440 + end;
+  if (cur < s0) return 'todo';
+  if (cur < e0) return 'now';
+  return 'done';
+}
 function renderTimeline() {
   const statusTxt = { done: 'DONE', now: 'NOW', todo: 'TODO' };
-  document.getElementById('timeline').innerHTML = schedules.map(s => `
-    <div class="tl-row ${esc(s.status)}">
+  document.getElementById('timeline').innerHTML = schedules.map(s => {
+    const st = autoScheduleStatus(s);
+    return `
+    <div class="tl-row ${esc(st)}">
       <div class="tl-time">${esc(s.day)}<br>${esc(s.time)}</div>
       <div class="tl-mid"><span class="tl-dot"></span><span class="tl-line"></span></div>
       <div class="tl-content">
-        <div class="tl-title">${esc(s.title)} <span class="tl-badge">${statusTxt[s.status] || 'TODO'}</span></div>
+        <div class="tl-title">${esc(s.title)} <span class="tl-badge">${statusTxt[st] || 'TODO'}</span></div>
         <div class="tl-desc">${esc(s.desc || '')}</div>
       </div>
-    </div>`).join('') || '<div class="empty">赛程尚未发布</div>';
+    </div>`;
+  }).join('') || '<div class="empty">赛程尚未发布</div>';
 }
 function renderAnnounce() {
   document.getElementById('announceList').innerHTML = announcements.map(a => `

@@ -278,7 +278,7 @@ app.get('/api/schedules', wrap(async (req, res) => {
 }));
 
 app.get('/api/announcements', wrap(async (req, res) => {
-  res.json({ ok: true, announcements: await store.all('SELECT * FROM announcements ORDER BY pinned DESC, id DESC') });
+  res.json({ ok: true, announcements: await store.all("SELECT * FROM announcements WHERE published = 1 ORDER BY pinned DESC, id DESC") });
 }));
 
 /* ===== 认证：当前登录态 ===== */
@@ -860,6 +860,34 @@ app.post('/api/admin/pool/:id/assign', requireAdmin, wrap(async (req, res) => {
   res.json({ ok: true, msg: '已分配入队' });
 }));
 
+/* 管理员：组队申请审批 */
+app.get('/api/admin/requests', requireAdmin, wrap(async (req, res) => {
+  const reqs = await store.all(`SELECT r.id, r.player_id, r.msg, r.status, r.created_at, t.id AS team_id, t.name AS team_name, p.name, p.role, p.grade
+    FROM team_requests r JOIN teams t ON t.id = r.team_id JOIN players p ON p.id = r.player_id
+    ORDER BY (r.status = 'pending') DESC, r.id DESC LIMIT 200`);
+  res.json({ ok: true, requests: reqs });
+}));
+
+app.post('/api/admin/requests/:id/approve', requireAdmin, wrap(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const row = await store.get("SELECT * FROM team_requests WHERE id = ? AND status = 'pending'", id);
+  if (!row) return res.status(404).json({ ok: false, msg: '申请不存在或已处理' });
+  const team = await store.get("SELECT * FROM teams WHERE id = ? AND status != 'disbanded'", row.team_id);
+  if (!team) return res.status(400).json({ ok: false, msg: '队伍不存在或已解散' });
+  const dup = await store.get('SELECT 1 FROM team_members WHERE team_id = ? AND player_id = ?', row.team_id, row.player_id);
+  if (!dup) await store.run('INSERT INTO team_members (team_id, player_id) VALUES (?, ?)', row.team_id, row.player_id);
+  await store.run("UPDATE team_requests SET status = 'accepted' WHERE id = ?", row.id);
+  res.json({ ok: true, msg: '已通过，申请人加入队伍' });
+}));
+
+app.post('/api/admin/requests/:id/reject', requireAdmin, wrap(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const row = await store.get("SELECT * FROM team_requests WHERE id = ? AND status = 'pending'", id);
+  if (!row) return res.status(404).json({ ok: false, msg: '申请不存在或已处理' });
+  await store.run("UPDATE team_requests SET status = 'rejected' WHERE id = ?", row.id);
+  res.json({ ok: true, msg: '已拒绝申请' });
+}));
+
 /* 管理员：队伍状态调整 / 解散 */
 app.get('/api/admin/teams/:id/members', requireAdmin, wrap(async (req, res) => {
   const id = parseInt(req.params.id, 10);
@@ -907,15 +935,15 @@ app.delete('/api/admin/schedules/:id', requireAdmin, wrap(async (req, res) => {
 }));
 
 app.put('/api/admin/announcements/:id', requireAdmin, wrap(async (req, res) => {
-  const { tag, title, body, time, pinned } = req.body || {};
-  await store.run('UPDATE announcements SET tag=?, title=?, body=?, time=?, pinned=? WHERE id=?',
-    tag || '', title || '', body || '', time || '', pinned ? 1 : 0, parseInt(req.params.id, 10));
+  const { tag, title, body, time, pinned, published } = req.body || {};
+  await store.run('UPDATE announcements SET tag=?, title=?, body=?, time=?, pinned=?, published=? WHERE id=?',
+    tag || '', title || '', body || '', time || '', pinned ? 1 : 0, published === undefined ? 1 : (published ? 1 : 0), parseInt(req.params.id, 10));
   res.json({ ok: true });
 }));
 app.post('/api/admin/announcements', requireAdmin, wrap(async (req, res) => {
-  const { tag, title, body, time, pinned } = req.body || {};
-  const r = await store.run('INSERT INTO announcements (tag,title,body,time,pinned) VALUES (?,?,?,?,?) RETURNING id',
-    tag || '', title || '', body || '', time || '', pinned ? 1 : 0);
+  const { tag, title, body, time, pinned, published } = req.body || {};
+  const r = await store.run('INSERT INTO announcements (tag,title,body,time,pinned,published) VALUES (?,?,?,?,?,?) RETURNING id',
+    tag || '', title || '', body || '', time || '', pinned ? 1 : 0, published === undefined ? 1 : (published ? 1 : 0));
   res.json({ ok: true, id: Number(r.lastInsertRowid) });
 }));
 app.delete('/api/admin/announcements/:id', requireAdmin, wrap(async (req, res) => {
@@ -978,6 +1006,9 @@ app.put('/api/admin/players/:id', requireAdmin, wrap(async (req, res) => {
 /* ===== 启动：初始化数据层 → 联系方式加密迁移 → 监听 ===== */
 async function boot() {
   await store.init();
+  // 启动迁移：announcements 增加 published 草稿列（幂等）
+  try { await store.run('ALTER TABLE announcements ADD COLUMN published INTEGER DEFAULT 1'); console.log('[migrate] announcements.published 列已就绪'); }
+  catch (e) { /* 列已存在或环境不支持 ALTER，忽略 */ }
   // 启动迁移：把已有明文 contact 加密（幂等）
   if (ENC_KEY) {
     try {

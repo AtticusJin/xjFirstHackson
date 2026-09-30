@@ -98,6 +98,7 @@ td .btn{width:auto;padding:5px 12px;font-size:11px}
       <button data-tab="claims">认领</button>
       <button data-tab="players">选手</button>
       <button data-tab="teams">队伍</button>
+      <button data-tab="requests">申请</button>
       <button data-tab="pool">等待池</button>
     </div>
 
@@ -146,6 +147,14 @@ td .btn{width:auto;padding:5px 12px;font-size:11px}
       <div class="table-scroll">
       <table><thead><tr><th style="width:44px">ID</th><th>队伍名称</th><th style="width:90px">队长</th><th style="width:52px">人数</th><th>项目名</th><th style="width:130px">项目状态</th><th style="width:180px">操作</th></tr></thead>
       <tbody id="teamBody"></tbody></table>
+      </div>
+    </div>
+    <div class="panel" id="tab-requests">
+      <h3>组队申请审批 <span class="hint" id="reqCount"></span></h3>
+      <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">所有选手提交的组队申请，管理员可兜底通过/拒绝（队长侧已有审批）。</p>
+      <div class="table-scroll">
+      <table><thead><tr><th style="width:44px">ID</th><th style="width:100px">申请人</th><th style="width:80px">方向</th><th style="width:120px">目标队伍</th><th>留言</th><th style="width:110px">时间</th><th style="width:80px">状态</th><th style="width:120px">操作</th></tr></thead>
+      <tbody id="reqBody"></tbody></table>
       </div>
     </div>
     <div class="panel" id="tab-pool">
@@ -198,6 +207,7 @@ const TS = {
 
 async function load() {
   DATA = await api('/admin/overview');
+  try { const r = await api('/admin/requests'); DATA.requests = r.requests || []; } catch (e) { DATA.requests = []; }
   render();
 }
 function render() {
@@ -209,10 +219,10 @@ function render() {
     <div class="st"><b>${st.teams || 0}</b><span>活跃队伍</span></div>
     <div class="st"><b>${st.team_members || 0}</b><span>已组队人数</span></div>
     <div class="st"><b>${(DATA.pool || []).length}</b><span>等待池</span></div>
-    <div class="st"><b>${st.pending_req || 0}</b><span>待处理申请</span></div>
+    <div class="st" style="cursor:pointer" onclick="switchTab('requests')" title="点击查看申请列表"><b>${st.pending_req || 0}</b><span>待处理申请</span></div>
     <div class="st"><b>${st.site_likes || 0}</b><span>总点赞</span></div>
     <div class="st"><b>${st.friend_pairs || 0}</b><span>好友对数</span></div>`;
-  renderSchedules(); renderAnnouncements(); renderClaims(); renderPlayers(); renderTeams(); renderPool();
+  renderSchedules(); renderAnnouncements(); renderClaims(); renderPlayers(); renderTeams(); renderRequests(); renderPool();
 }
 function renderPool() {
   const pool = DATA.pool || [];
@@ -244,6 +254,37 @@ async function removePool(id) {
   try { await api('/admin/pool/' + id + '/remove', { method: 'POST' }); toast('已移除'); await load(); }
   catch (e) { toast(e.message, true); }
 }
+function renderRequests() {
+  const reqs = DATA.requests || [];
+  document.getElementById('reqCount').textContent = `(${reqs.filter(r => r.status === 'pending').length} 条待处理)`;
+  document.getElementById('reqBody').innerHTML = reqs.length ? reqs.map(r => `
+    <tr data-id="${r.id}">
+      <td>${r.id}</td>
+      <td><b>${esc(r.name)}</b><br><span style="font-size:10px;color:var(--text-3)">${esc(r.grade || '')}</span></td>
+      <td>${esc(r.role || '—')}</td>
+      <td>${esc(r.team_name)} <span style="color:var(--text-3);font-size:10px">#${r.team_id}</span></td>
+      <td style="max-width:240px;color:var(--text-2)">${esc(r.msg || '—')}</td>
+      <td style="font-family:var(--mono);color:var(--text-3)">${esc(r.created_at || '')}</td>
+      <td>${r.status === 'pending' ? '<span class="badge pending">待处理</span>' : r.status === 'accepted' ? '<span class="badge bound">已通过</span>' : '<span class="badge released">已拒绝</span>'}</td>
+      <td>${r.status === 'pending' ? `<div class="row-actions"><button class="btn save" onclick="approveReq(${r.id})">通过</button><button class="btn del" onclick="rejectReq(${r.id})">拒绝</button></div>` : '<span style="color:var(--text-3)">已处理</span>'}</td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">暂无组队申请</td></tr>';
+}
+async function approveReq(id) {
+  const r = (DATA.requests || []).find(x => x.id === id);
+  if (!confirm(`确认通过「${esc(r?.name || '')}」加入「${esc(r?.team_name || '')}」？`)) return;
+  try { await api('/admin/requests/' + id + '/approve', { method: 'POST' }); toast('已通过 ✓'); await load(); }
+  catch (e) { toast(e.message, true); }
+}
+async function rejectReq(id) {
+  if (!confirm('确认拒绝该申请？')) return;
+  try { await api('/admin/requests/' + id + '/reject', { method: 'POST' }); toast('已拒绝'); await load(); }
+  catch (e) { toast(e.message, true); }
+}
+function switchTab(name) {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'tab-' + name));
+}
+
 function renderSchedules() {
   document.getElementById('schBody').innerHTML = DATA.schedules.map(s => `
     <tr data-id="${s.id}">
@@ -284,8 +325,22 @@ function renderAnnouncements() {
       <td><textarea class="f-body" rows="2" style="width:100%;min-width:220px">${esc(a.body)}</textarea></td>
       <td><input class="f-time" value="${esc(a.time)}" style="width:80px"></td>
       <td><input type="checkbox" class="f-pin" ${a.pinned ? 'checked' : ''}></td>
-      <td><div class="row-actions"><button class="btn save" onclick="saveAnn(${a.id}, this)">保存</button><button class="btn del" onclick="delAnn(${a.id})">删</button></div></td>
-    </tr>`).join('') || '<tr><td colspan="6" class="empty">暂无公告</td></tr>';
+      <td>${a.published ? '<span class="badge bound" style="font-size:9px">已发布</span>' : '<span class="badge released" style="font-size:9px">草稿</span>'}</td>
+      <td><div class="row-actions">
+        <button class="btn save" onclick="saveAnn(${a.id}, this)">保存</button>
+        <button class="btn ${a.published ? '' : 'add'}" onclick="togglePublish(${a.id}, this)">${a.published ? '撤回' : '发布'}</button>
+        <button class="btn del" onclick="delAnn(${a.id})">删</button>
+      </div></td>
+    </tr>`).join('') || '<tr><td colspan="7" class="empty">暂无公告</td></tr>';
+}
+async function togglePublish(id, btn) {
+  const a = DATA.announcements.find(x => x.id === id);
+  if (!a) return;
+  btn.disabled = true;
+  try {
+    await api('/admin/announcements/' + id, { method: 'PUT', body: JSON.stringify({ published: a.published ? 0 : 1 }) });
+    toast(a.published ? '已撤回为草稿（前台不再显示）' : '已发布 ✓'); await load();
+  } catch (e) { toast(e.message, true); btn.disabled = false; }
 }
 async function saveAnn(id, btn) {
   const tr = btn.closest('tr');
@@ -293,7 +348,7 @@ async function saveAnn(id, btn) {
   const body = {
     tag: tr.querySelector('.f-tag').value, title: tr.querySelector('.f-title').value,
     body: tr.querySelector('.f-body').value, time: tr.querySelector('.f-time').value,
-    pinned: tr.querySelector('.f-pin').checked ? 1 : 0
+    pinned: tr.querySelector('.f-pin').checked ? 1 : 0, published: 1
   };
   try { await api('/admin/announcements/' + id, { method: 'PUT', body: JSON.stringify(body) }); toast('公告已保存'); await load(); }
   catch (e) { toast(e.message, true); btn.disabled = false; }
@@ -303,8 +358,8 @@ async function delAnn(id) {
   await api('/admin/announcements/' + id, { method: 'DELETE' }); toast('已删除'); load();
 }
 async function addAnnouncement() {
-  await api('/admin/announcements', { method: 'POST', body: JSON.stringify({ tag: '通知', title: '新公告', body: '', time: '', pinned: 0 }) });
-  toast('已新增公告，请填写内容'); load();
+  await api('/admin/announcements', { method: 'POST', body: JSON.stringify({ tag: '通知', title: '新公告', body: '', time: '', pinned: 0, published: 0 }) });
+  toast('已新增草稿公告，填写后点「发布」上线'); load();
 }
 
 function renderClaims() {

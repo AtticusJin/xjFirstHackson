@@ -61,6 +61,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);overflow:hid
 .tl-badge{font-size:11px;font-family:var(--mono);padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:2px}
 .tl-desc{font-size:14px;color:var(--text-2);margin-top:4px}
 .ann-wall{display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.st-bars{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.st-bar{display:grid;grid-template-columns:90px 1fr 50px;align-items:center;gap:12px}
+.st-bar .lb{font-family:var(--mono);font-size:14px;color:var(--text-2)}
+.st-bar .tr{height:16px;background:var(--card);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.st-bar .tr i{display:block;height:100%;border-radius:8px;transition:width 1s ease;width:0}
+.st-bar .nm{font-family:var(--mono);font-size:14px;color:var(--text-2);text-align:right}
 .ann{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:14px;padding:22px 26px}
 .ann .a-tag{font-family:var(--mono);font-size:12px;color:var(--violet)}
 .ann .a-title{font-size:20px;font-weight:700;margin-left:10px}
@@ -86,6 +92,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);overflow:hid
       <div class="bar"><i id="progBar"></i></div>
     </div>
     <h2 id="ovRoles" style="margin-top:8px"></h2>
+    <div class="prog" style="margin-top:16px">
+      <div class="p-top"><span>项目状态分布</span><span id="stDistTxt"></span></div>
+      <div class="st-bars" id="stDist"></div>
+    </div>
   </section>
   <section class="page" id="pg-teams">
     <h1>参赛队伍 <span class="n" id="teamCount"></span></h1>
@@ -129,12 +139,23 @@ async function load() {
 function render() {
   const claimed = DATA.players.filter(x => x.status === 'claimed').length;
   // 总览
+  const grouped = DATA.teams.reduce((s, t) => s + (t.member_count || 0), 0);
   document.getElementById('ovTitle').textContent = `· ${TOTAL} 人报名`;
   document.getElementById('bigStats').innerHTML = `
     <div class="big-st accent"><b>${claimed}</b><span>已认领身份</span></div>
     <div class="big-st vio"><b>${DATA.teams.length}</b><span>参赛队伍</span></div>
-    <div class="big-st amber"><b>${DATA.waiting}</b><span>等待池待匹配</span></div>
-    <div class="big-st pink"><b>${DATA.schedules.filter(x => x.status === 'now').length}</b><span>进行中节点</span></div>`;
+    <div class="big-st amber"><b>${grouped}</b><span>已组队人数</span></div>
+    <div class="big-st pink"><b>${DATA.waiting}</b><span>等待池待匹配</span></div>`;
+  const stKeys = ['recruiting', 'formed', 'developing', 'submitted', 'judging', 'finished'];
+  const stCount = {};
+  DATA.teams.forEach(t => { const k = TS[t.project_status] ? t.project_status : 'recruiting'; stCount[k] = (stCount[k] || 0) + 1; });
+  const totalT = DATA.teams.length || 1;
+  document.getElementById('stDistTxt').textContent = `${DATA.teams.length} 支队伍`;
+  document.getElementById('stDist').innerHTML = stKeys.map(k => {
+    const n = stCount[k] || 0;
+    const c = TS[k].color;
+    return `<div class="st-bar"><div class="lb">${TS[k].label}</div><div class="tr"><i style="width:${Math.round(n / totalT * 100)}%;background:${c}"></i></div><div class="nm">${n}</div></div>`;
+  }).join('');
   const pct = TOTAL ? Math.round(claimed / TOTAL * 100) : 0;
   document.getElementById('progBar').style.width = pct + '%';
   document.getElementById('progTxt').textContent = `${claimed} / ${TOTAL} · ${pct}%`;
@@ -154,13 +175,16 @@ function render() {
   }).join('') : '<div style="color:var(--text-3);font-size:20px">还没有队伍，等待第一支队伍出现…</div>';
   // 赛程
   const statusTxt = { done: 'DONE', now: 'NOW', todo: 'TODO' };
-  document.getElementById('tlWall').innerHTML = DATA.schedules.map(s => `
-    <div class="tl-row ${esc(s.status)}">
+  document.getElementById('tlWall').innerHTML = DATA.schedules.map(s => {
+    const st = autoScheduleStatus(s);
+    return `
+    <div class="tl-row ${esc(st)}">
       <div class="tl-time">${esc(s.day)}<br>${esc(s.time)}</div>
       <div class="tl-mid"><span class="tl-dot"></span><span class="tl-line"></span></div>
-      <div><div class="tl-title">${esc(s.title)} <span class="tl-badge" style="color:${s.status === 'now' ? 'var(--amber)' : s.status === 'done' ? 'var(--green)' : 'var(--text-3)'};border:1px solid currentColor33">${statusTxt[s.status] || 'TODO'}</span></div>
+      <div><div class="tl-title">${esc(s.title)} <span class="tl-badge" style="color:${st === 'now' ? 'var(--amber)' : st === 'done' ? 'var(--green)' : 'var(--text-3)'};border:1px solid currentColor33">${statusTxt[st] || 'TODO'}</span></div>
       <div class="tl-desc">${esc(s.desc || '')}</div></div>
-    </div>`).join('') || '<div style="color:var(--text-3);font-size:20px">赛程尚未发布</div>';
+    </div>`;
+  }).join('') || '<div style="color:var(--text-3);font-size:20px">赛程尚未发布</div>';
   // 公告
   document.getElementById('annWall').innerHTML = DATA.announcements.map(a => `
     <div class="ann"><div class="a-tag">${esc(a.tag)}</div><span class="a-title">${esc(a.title)}</span><span class="a-time">${esc(a.time)}</span><div class="a-body">${esc(a.body)}</div></div>`).join('') || '<div style="color:var(--text-3);font-size:20px">暂无公告</div>';
@@ -169,6 +193,36 @@ function render() {
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+/* 赛程状态自动切换 */
+function autoScheduleStatus(s) {
+  const m = String(s.day || '').match(/10月(\d+)日/);
+  const now = new Date();
+  if (!m || now.getFullYear() !== 2026 || now.getMonth() !== 9) return s.status || 'todo';
+  const d = parseInt(m[1], 10);
+  const cur = now.getDate() * 1440 + now.getHours() * 60 + now.getMinutes();
+  const parseT = t => {
+    if (t == null || !String(t).trim()) return null;
+    t = String(t).trim();
+    if (t === '24:00') return { start: 1440, end: 1441 };
+    const mm = t.match(/^(\d{1,2}):(\d{2})/);
+    if (mm) return { start: +mm[1] * 60 + +mm[2], end: null };
+    const map = { '全天': [0, 1440], '上午': [480, 720], '中午': [720, 780], '下午': [780, 1080], '傍晚': [1020, 1140], '晚上': [1140, 1440] };
+    if (map[t]) return { start: map[t][0], end: map[t][1] };
+    return null;
+  };
+  const parts = String(s.time || '').split(/[–\-～~]/).map(x => x.trim()).filter(Boolean);
+  const a = parseT(parts[0]);
+  if (!a) return s.status || 'todo';
+  let start = a.start, end = a.end;
+  if (end == null) {
+    if (parts.length > 1) { const b = parseT(parts[1]); end = b ? (b.start < start ? b.start + 1440 : b.start) : start + 120; }
+    else end = start + 120;
+  }
+  const s0 = d * 1440 + start, e0 = d * 1440 + end;
+  if (cur < s0) return 'todo';
+  if (cur < e0) return 'now';
+  return 'done';
+}
 /* 轮播 */
 const PAGES = ['pg-overview', 'pg-teams', 'pg-timeline', 'pg-announce'];
 function initDots() {
@@ -188,7 +242,7 @@ const INIT_PAGE = parseInt(new URLSearchParams(location.search).get("page") || "
 initDots();
 go(INIT_PAGE);
 load();
-setInterval(load, 60000);
+setInterval(load, 30000);
 setInterval(() => go(page + 1), 15000);
 setInterval(tick, 1000);
 tick();

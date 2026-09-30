@@ -89,7 +89,8 @@ CREATE TABLE IF NOT EXISTS schedules (
 );
 CREATE TABLE IF NOT EXISTS announcements (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  tag TEXT, title TEXT, body TEXT, time TEXT, pinned INTEGER DEFAULT 0
+  tag TEXT, title TEXT, body TEXT, time TEXT, pinned INTEGER DEFAULT 0,
+  published INTEGER DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS teams (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -175,7 +176,7 @@ const DDL_PG = [
   `CREATE TABLE IF NOT EXISTS schedules (
     id SERIAL PRIMARY KEY, day TEXT, time TEXT, title TEXT, "desc" TEXT, status TEXT, sort INTEGER)`,
   `CREATE TABLE IF NOT EXISTS announcements (
-    id SERIAL PRIMARY KEY, tag TEXT, title TEXT, body TEXT, time TEXT, pinned INTEGER DEFAULT 0)`,
+    id SERIAL PRIMARY KEY, tag TEXT, title TEXT, body TEXT, time TEXT, pinned INTEGER DEFAULT 0, published INTEGER DEFAULT 1)`,
   `CREATE TABLE IF NOT EXISTS teams (
     id SERIAL PRIMARY KEY, name TEXT NOT NULL, slogan TEXT, role_needs TEXT, intro TEXT,
     project_name TEXT, project_desc TEXT, project_status TEXT DEFAULT 'recruiting',
