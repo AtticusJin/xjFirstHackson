@@ -138,6 +138,28 @@ app.get('/api/players', wrap(async (req, res) => {
   }) });
 }));
 
+/* ===== 站点点赞（每人一赞，幂等） ===== */
+app.get('/api/site/likes', wrap(async (req, res) => {
+  const row = await store.get('SELECT COUNT(*) AS c FROM site_likes');
+  const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
+  let liked = false;
+  if (me) {
+    const mine = await store.get('SELECT id FROM site_likes WHERE user_id = ?', me.id);
+    liked = !!mine;
+  }
+  res.json({ ok: true, count: row ? row.c : 0, liked });
+}));
+app.post('/api/site/like', wrap(async (req, res) => {
+  const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
+  if (!me) return res.status(401).json({ ok: false, msg: '登录后即可点赞' });
+  const countRow = async () => (await store.get('SELECT COUNT(*) AS c FROM site_likes')).c;
+  const mine = await store.get('SELECT id FROM site_likes WHERE user_id = ?', me.id);
+  if (mine) return res.json({ ok: true, count: await countRow(), liked: true, already: true });
+  try { await store.run('INSERT INTO site_likes (user_id) VALUES (?)', me.id); }
+  catch (e) { return res.json({ ok: true, count: await countRow(), liked: true, already: true }); }
+  res.json({ ok: true, count: await countRow(), liked: true, already: false });
+}));
+
 app.get('/api/schedules', wrap(async (req, res) => {
   res.json({ ok: true, schedules: await store.all('SELECT * FROM schedules ORDER BY sort') });
 }));

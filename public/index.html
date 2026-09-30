@@ -26,6 +26,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .user-chip b{font-family:var(--mono);color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
 .user-chip button{background:var(--card);border:1px solid var(--line);color:var(--text-2);font-size:11px;padding:5px 9px;border-radius:7px;cursor:pointer;font-family:var(--mono);min-height:26px}
 .user-chip button:hover{border-color:var(--pink);color:var(--pink)}
+/* 顶部点赞按钮 */
+.like-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(255,92,138,.08);border:1px solid rgba(255,92,138,.35);color:var(--pink);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .15s;flex:none;font-family:var(--mono)}
+.like-btn:active{transform:scale(.9)}
+.like-btn:hover{border-color:var(--pink);background:rgba(255,92,138,.16)}
+.like-btn.liked{background:rgba(255,92,138,.18);border-color:var(--pink)}
+.like-num{font-size:11px;font-family:var(--mono)}
+.like-pop{animation:likePop .4s ease}
+@keyframes likePop{0%{transform:scale(1)}45%{transform:scale(1.45)}100%{transform:scale(1)}}
+.burst-heart{position:fixed;pointer-events:none;color:var(--pink);z-index:9999;font-weight:700;text-shadow:0 0 12px rgba(255,92,138,.8);animation:burstFly .75s ease-out forwards}
+@keyframes burstFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.7)}}
 
 /* hero */
 .hero{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:16px}
@@ -333,7 +343,13 @@ footer{margin-top:28px;text-align:center;font-family:var(--mono);font-size:9px;c
 <div class="wrap">
   <div class="topbar">
     <div class="brand"><span class="logo">XJ</span><span>学军首页<span class="grad">黑客松</span></span></div>
-    <div id="userChip" class="user-chip" style="display:none"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="like-btn" id="likeBtn" onclick="toggleLike()" title="为黑客松点赞">
+        <span class="like-ico" id="likeIco">♡</span>
+        <span class="like-num" id="likeNum">0</span>
+      </button>
+      <div id="userChip" class="user-chip" style="display:none"></div>
+    </div>
   </div>
 
   <!-- ===== 首页 ===== -->
@@ -463,6 +479,56 @@ async function refresh() {
   const [p, s, a] = await Promise.all([api('/players'), api('/schedules'), api('/announcements')]);
   players = p.players; schedules = s.schedules; announcements = a.announcements;
   renderStats(); renderGrid(); renderTimeline(); renderAnnounce();
+}
+
+/* ===== 站点点赞 ===== */
+let likeCount = 0, liked = false;
+async function loadLikes() {
+  try {
+    const d = await api('/site/likes');
+    likeCount = d.count || 0; liked = !!d.liked;
+    const btn = document.getElementById('likeBtn');
+    const num = document.getElementById('likeNum');
+    const ico = document.getElementById('likeIco');
+    if (num) num.textContent = likeCount;
+    if (ico) ico.textContent = liked ? '♥' : '♡';
+    if (btn) btn.classList.toggle('liked', liked);
+  } catch (e) { /* 接口暂不可用则不渲染 */ }
+}
+async function toggleLike() {
+  if (!ME) { toast('登录后即可为黑客松点赞'); return; }
+  if (liked) { toast('你已经为黑客松点过赞啦 ♥'); return; }
+  try {
+    const d = await api('/site/like', { method: 'POST' });
+    if (d.ok) {
+      likeCount = d.count; liked = true;
+      document.getElementById('likeNum').textContent = likeCount;
+      document.getElementById('likeIco').textContent = '♥';
+      document.getElementById('likeBtn').classList.add('liked');
+      burstLike();
+      toast('点赞成功 ♥');
+    }
+  } catch (e) { toast('点赞失败：' + esc(e.message), true); }
+}
+function burstLike() {
+  const btn = document.getElementById('likeBtn');
+  const r = btn.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < 10; i++) {
+    const h = document.createElement('span');
+    h.className = 'burst-heart'; h.textContent = '♥';
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 34 + Math.random() * 46;
+    h.style.left = cx + 'px'; h.style.top = cy + 'px';
+    h.style.setProperty('--dx', (Math.cos(ang) * dist) + 'px');
+    h.style.setProperty('--dy', (Math.sin(ang) * dist - 24) + 'px');
+    h.style.fontSize = (12 + Math.random() * 10) + 'px';
+    h.style.transform = 'translate(-50%,-50%)';
+    document.body.appendChild(h);
+    setTimeout(() => h.remove(), 800);
+  }
+  const ico = document.getElementById('likeIco');
+  ico.classList.remove('like-pop'); void ico.offsetWidth; ico.classList.add('like-pop');
 }
 async function loadTeams() {
   try {
@@ -1500,6 +1566,7 @@ document.getElementById('modal').addEventListener('click', e => { if (e.target.i
     catch (e2) { /* 仍失败则保持游客态 */ }
   }
   await refresh();
+  await loadLikes();
   await loadTeams();
   renderUser();
   renderStats();

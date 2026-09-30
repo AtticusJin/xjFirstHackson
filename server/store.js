@@ -125,6 +125,11 @@ CREATE TABLE IF NOT EXISTS waiting_pool (
   status TEXT DEFAULT 'waiting',
   created_at TEXT DEFAULT (datetime('now','localtime'))
 );
+CREATE TABLE IF NOT EXISTS site_likes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  created_at TEXT DEFAULT (datetime('now','localtime'))
+);
 `;
 
 /* PG 版 DDL：逐条执行（pg 不支持多语句 query） */
@@ -166,6 +171,9 @@ const DDL_PG = [
   `CREATE TABLE IF NOT EXISTS waiting_pool (
     id SERIAL PRIMARY KEY, player_id INTEGER NOT NULL UNIQUE, msg TEXT,
     status TEXT DEFAULT 'waiting', note TEXT,
+    created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `,
+  `CREATE TABLE IF NOT EXISTS site_likes (
+    id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL UNIQUE,
     created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `
 ];
 
@@ -195,7 +203,7 @@ async function migrate() {
 }
 
 /* ===== 数据导入：优先 export.json（真实数据快照），其次内置 seed ===== */
-const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'waiting_pool'];
+const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'waiting_pool', 'site_likes'];
 
 async function importExportJson() {
   const f = path.join(__dirname, '..', 'data', 'export.json');
