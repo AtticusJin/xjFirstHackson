@@ -43,6 +43,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .pc-like:active{transform:scale(.88)}
 .pc-like.liked{border-color:rgba(255,92,138,.5);background:rgba(255,92,138,.1);color:var(--pink)}
 .friend-tag{font-size:12px;margin-left:4px;filter:drop-shadow(0 0 6px rgba(255,215,90,.7))}
+.like-btn.shake{animation:xjshake .35s ease}
+@keyframes xjshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
 .d-like-bar{display:flex;align-items:center;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
 .d-like{display:inline-flex;align-items:center;gap:6px;background:rgba(255,92,138,.08);border:1px solid rgba(255,92,138,.4);color:var(--pink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:var(--mono);transition:all .15s}
 .d-like .pl-ico{font-size:15px}
@@ -512,7 +514,11 @@ async function loadLikes() {
   } catch (e) { /* 接口暂不可用则不渲染 */ }
 }
 async function toggleLike() {
-  if (likeRemain <= 0) { toast('今天的 5 个赞用完啦，明天再来 ♥'); return; }
+  if (likeRemain <= 0) {
+    const btn = document.getElementById('likeBtn');
+    if (btn) { btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake'); setTimeout(() => btn.classList.remove('shake'), 400); }
+    return;
+  }
   try {
     const d = await api('/site/like', { method: 'POST' });
     if (d.ok) {
