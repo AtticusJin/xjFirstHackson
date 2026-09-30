@@ -43,6 +43,20 @@ function decContact(s) {
   } catch (e) { return ''; }
 }
 
+/* 密码哈希（scrypt + 随机盐，零依赖） */
+function hashPassword(pw) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const h = crypto.scryptSync(String(pw), salt, 32).toString('hex');
+  return `${salt}:${h}`;
+}
+function verifyPassword(pw, stored) {
+  if (!stored || !stored.includes(':')) return false;
+  const [salt, h] = stored.split(':');
+  try {
+    return crypto.scryptSync(String(pw), salt, 32).toString('hex') === h;
+  } catch (e) { return false; }
+}
+
 function publicPlayer(p) {
   return {
     id: p.id, name: p.name, nickname: p.nickname, role: p.role,
@@ -116,7 +130,12 @@ const wrap = fn => (req, res) => {
 /* ===== 公开：选手名单 / 赛程 / 公告 ===== */
 app.get('/api/players', wrap(async (req, res) => {
   const list = await store.all('SELECT * FROM players WHERE retired != 1 ORDER BY id');
-  res.json({ ok: true, players: list.map(publicPlayer) });
+  const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
+  res.json({ ok: true, players: list.map(p => {
+    const pub = publicPlayer(p);
+    if (me && p.contact) pub.contact = decContact(p.contact);
+    return pub;
+  }) });
 }));
 
 app.get('/api/schedules', wrap(async (req, res) => {
@@ -386,6 +405,49 @@ app.post('/api/auth/verify-code', wrap(async (req, res) => {
     user: {
       id: user.id, email: user.email, is_admin: !!user.is_admin,
       player: boundPlayer ? { ...boundPlayer, contact: '' } : await playerOf(user.player_id),
+      needs_password: !user.password_hash,
+      wechat_bound: !!user.wechat_openid
+    }
+  });
+}));
+
+/* ===== 设置/修改密码（登录态；首次注册必须设置，二次确认） ===== */
+app.post('/api/auth/set-password', wrap(async (req, res) => {
+  const user = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
+  if (!user) return res.status(401).json({ ok: false, msg: '未登录' });
+  const password = String(req.body?.password || '');
+  const confirm = String(req.body?.confirm || '');
+  if (password.length < 8) return res.status(400).json({ ok: false, msg: '密码至少 8 位' });
+  if (password !== confirm) return res.status(400).json({ ok: false, msg: '两次输入的密码不一致' });
+  if (user.password_hash) {
+    const current = String(req.body?.current || '');
+    if (!current || !verifyPassword(current, user.password_hash))
+      return res.status(400).json({ ok: false, msg: '当前密码不正确' });
+  }
+  await store.run('UPDATE users SET password_hash = ? WHERE id = ?', hashPassword(password), user.id);
+  res.json({ ok: true, msg: '密码已设置，下次可用邮箱 + 密码登录' });
+}));
+
+/* ===== 密码登录（已有密码的账号直接登录） ===== */
+app.post('/api/auth/login-password', wrap(async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const password = String(req.body?.password || '');
+  if (!email || !password) return res.status(400).json({ ok: false, msg: '请输入邮箱和密码' });
+  if (!rateLimit('pw:' + email, 5, 60 * 1000)) return res.status(429).json({ ok: false, msg: '尝试过于频繁，请 60 秒后再试' });
+  const user = await store.get('SELECT * FROM users WHERE email = ?', email);
+  if (!user || !user.password_hash || !verifyPassword(password, user.password_hash))
+    return res.status(403).json({ ok: false, msg: '邮箱或密码错误；未设置密码的账号请先用邮箱验证码登录' });
+  const token = await createSession(user.id);
+  const playerOf = async id => {
+    const p = id ? await store.get('SELECT * FROM players WHERE id = ?', id) : null;
+    return p ? publicPlayer(p) : null;
+  };
+  res.json({
+    ok: true, token, isNew: false,
+    user: {
+      id: user.id, email: user.email, is_admin: !!user.is_admin,
+      player: await playerOf(user.player_id),
+      needs_password: false,
       wechat_bound: !!user.wechat_openid
     }
   });

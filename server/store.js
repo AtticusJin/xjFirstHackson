@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE,
   player_id INTEGER,
   wechat_openid TEXT UNIQUE,
+  password_hash TEXT,
   is_admin INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now','localtime'))
 );
@@ -134,7 +135,7 @@ const DDL_PG = [
     status TEXT DEFAULT 'unclaimed', self_registered INTEGER DEFAULT 0, contact TEXT, is_demo INTEGER DEFAULT 0, retired INTEGER DEFAULT 0)`,
   `CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY, email TEXT UNIQUE, player_id INTEGER, wechat_openid TEXT UNIQUE,
-    is_admin INTEGER DEFAULT 0,
+    password_hash TEXT, is_admin INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `,
   `CREATE TABLE IF NOT EXISTS claims (
     id SERIAL PRIMARY KEY, player_id INTEGER NOT NULL, wechat TEXT, email TEXT, claim_token TEXT UNIQUE,
@@ -176,7 +177,8 @@ async function migrate() {
       'ALTER TABLE players ADD COLUMN IF NOT EXISTS contact TEXT',
       'ALTER TABLE players ADD COLUMN IF NOT EXISTS retired INTEGER DEFAULT 0',
       'ALTER TABLE players ADD COLUMN IF NOT EXISTS is_demo INTEGER DEFAULT 0',
-      'ALTER TABLE waiting_pool ADD COLUMN IF NOT EXISTS note TEXT'
+      'ALTER TABLE waiting_pool ADD COLUMN IF NOT EXISTS note TEXT',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT'
     ];
     for (const s of stmts) { try { await pgClient.query(s); } catch (e) {} }
   } else {
@@ -185,7 +187,8 @@ async function migrate() {
       'ALTER TABLE players ADD COLUMN contact TEXT',
       'ALTER TABLE players ADD COLUMN retired INTEGER DEFAULT 0',
       'ALTER TABLE players ADD COLUMN is_demo INTEGER DEFAULT 0',
-      'ALTER TABLE waiting_pool ADD COLUMN note TEXT'
+      'ALTER TABLE waiting_pool ADD COLUMN note TEXT',
+      'ALTER TABLE users ADD COLUMN password_hash TEXT'
     ];
     for (const s of stmts) { try { sqlite.exec(s); } catch (e) {} }
   }

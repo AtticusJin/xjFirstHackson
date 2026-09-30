@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>学军中学黑客松 · XJHACK</title>
+<title>学军首页黑客松 · XJHACK</title>
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap">
 <style>
 :root{
@@ -137,6 +137,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .d-links{display:flex;flex-direction:column;gap:8px}
 .d-link{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:0}
 .d-link a{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--cyan);word-break:break-all}
+.d-contact{display:flex;align-items:center;gap:8px;background:rgba(139,124,255,.08);border:1px solid rgba(139,124,255,.3);border-radius:9px;padding:9px 12px;font-size:12px;color:var(--text-2);margin-top:10px;flex-wrap:wrap}
+.d-contact b{font-family:var(--mono);color:var(--violet);word-break:break-all}
 .d-link button{flex:none;font-size:10px;padding:5px 10px}
 .d-status{font-size:11px;color:var(--text-2);line-height:1.7;padding:10px 12px;border:1px dashed var(--line);border-radius:9px}
 .d-status b{color:var(--amber)}
@@ -167,6 +169,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .announce{display:flex;flex-direction:column;gap:10px}
 .ann{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
 .ann:active{border-color:var(--cyan)}
+.t-member:hover{border-color:rgba(70,240,200,.35)}
 .a-more{font-size:10px;color:var(--violet);font-family:var(--mono);margin-top:8px}
 .ann .a-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ann .a-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(139,124,255,.1);color:var(--violet);border:1px solid rgba(139,124,255,.3);flex:none}
@@ -323,7 +326,7 @@ footer{margin-top:28px;text-align:center;font-family:var(--mono);font-size:9px;c
 <body>
 <div class="wrap">
   <div class="topbar">
-    <div class="brand"><span class="logo">XJ</span><span>学军中学<span class="grad">黑客松</span></span></div>
+    <div class="brand"><span class="logo">XJ</span><span>学军首页<span class="grad">黑客松</span></span></div>
     <div id="userChip" class="user-chip" style="display:none"></div>
   </div>
 
@@ -581,6 +584,7 @@ function openPlayerDetail(pid) {
     <div class="d-link"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>
     <button class="btn ghost sm" onclick="copyText(${JSON.stringify(u).replace(/"/g, '&quot;')})">复制</button></div>`).join('')}</div>` : '';
   const tags = (p.tags || '').split(/\s+/).filter(Boolean);
+  const contactBox = (ME && p.contact) ? `<div class="d-contact">📮 联系方式：<b>${esc(p.contact)}</b> <button class="btn ghost sm" onclick="copyText(${JSON.stringify(p.contact).replace(/"/g, '&quot;')},'联系方式已复制')">复制</button></div>` : '';
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
     <div class="d-card">
@@ -592,8 +596,9 @@ function openPlayerDetail(pid) {
       ${(p.grade || tags.length) ? `<div class="d-meta">${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}${tags.map(t => `<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
       <div class="d-intro">${p.intro ? linkify(p.intro) : '暂无自我介绍'}</div>
       ${links}
+      ${contactBox}
       <div class="d-status">${claimed
-        ? '<b>■ 已被认领</b> — 想认识 TA？认领后选手信息为隐私保护模式，可通过<b>组队广场</b>向 TA 的队伍发起申请。'
+        ? '<b>■ 已被认领</b> — 想认识 TA？点击上方联系方式直接联系，或到<b>组队广场</b>向 TA 的队伍发起申请。'
         : '<b>□ 尚未认领</b> — 如果你就是本人，认领后即可编辑自己的资料、参与组队；如非本人也可先查看。'}
       </div>
       ${claimed ? '' : `<div class="btn-row"><button class="btn primary" onclick="startClaim(${p.id})">认领身份 →</button></div>`}
@@ -713,8 +718,11 @@ function renderMe() {
     ${ME.user.is_admin ? `<div class="me-section"><button class="btn primary btn-block" onclick="location.href='/admin.html'">⚙ 管理后台</button></div>` : ''}
     <div class="me-section"><div class="section-title" style="margin-top:0">我的队伍</div><div id="myTeams"></div></div>
     <div class="me-section"><div class="section-title" style="margin-top:0">账号</div>
-      <div class="me-list"><div class="ann"><div class="a-top"><span class="a-tag">EMAIL</span><span class="a-title">${esc(ME.user.email)}</span></div><div class="a-body">联系方式仅供队长联系，不对外展示。</div></div></div>
-      ${p ? `<button class="btn ghost sm" style="margin-top:10px;width:100%" onclick="toggleRetire()">${p.retired ? '↻ 恢复公开展示' : '🙈 撤下我的资料（不对外展示）'}</button>` : ''}
+      <div class="me-list"><div class="ann"><div class="a-top"><span class="a-tag">EMAIL</span><span class="a-title">${esc(ME.user.email)}</span></div><div class="a-body">登录选手可查看彼此联系方式以组队沟通；撤下资料后不再展示。</div></div></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn ghost sm" style="flex:1" onclick="openSetPassword(true)">🔑 ${ME.user.needs_password ? '设置密码' : '修改密码'}</button>
+        ${p ? `<button class="btn ghost sm" style="flex:1" onclick="toggleRetire()">${p.retired ? '↻ 恢复公开' : '🙈 撤下资料'}</button>` : ''}
+      </div>
     </div>
     <div class="btn-row"><button class="btn ghost" onclick="logout()">退出登录</button></div>`;
   renderMyTeams();
@@ -771,18 +779,28 @@ function openLogin(tab = 'claim') {
     <div class="tabs">
       <button id="tabClaim" class="${tab === 'claim' ? 'on' : ''}" onclick="loginTab('claim')">认领身份</button>
       <button id="tabReg" class="${tab === 'register' ? 'on' : ''}" onclick="loginTab('register')">注册参赛</button>
+      <button id="tabPwd" class="${tab === 'password' ? 'on' : ''}" onclick="loginTab('password')">密码登录</button>
       <button id="tabAdmin" class="${tab === 'admin' ? 'on' : ''}" onclick="loginTab('admin')">管理员</button>
     </div>
     <div id="loginBody"></div>`);
   loginTab(tab);
 }
 function loginTab(tab) {
-  const tc = document.getElementById('tabClaim'); const tr = document.getElementById('tabReg'); const ta = document.getElementById('tabAdmin');
+  const tc = document.getElementById('tabClaim'); const tr = document.getElementById('tabReg'); const tp = document.getElementById('tabPwd'); const ta = document.getElementById('tabAdmin');
   if (tc) tc.className = tab === 'claim' ? 'on' : '';
   if (tr) tr.className = tab === 'register' ? 'on' : '';
+  if (tp) tp.className = tab === 'password' ? 'on' : '';
   if (ta) ta.className = tab === 'admin' ? 'on' : '';
   const body = document.getElementById('loginBody');
-  if (tab === 'claim') {
+  if (tab === 'password') {
+    body.innerHTML = `
+      <p class="sub">已有密码？输入注册时设置的密码直接登录（无需验证码）。忘记密码可走「注册参赛」用验证码找回并重设。</p>
+      <div class="field"><label>邮箱</label><input id="pwEmail" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="field"><label>密码</label><input id="pwPassword" type="password" placeholder="登录密码" autocomplete="current-password"></div>
+      <div class="err-msg" id="modalErr"></div>
+      <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="loginPassword()">登录 →</button></div>`;
+    setTimeout(() => document.getElementById('pwEmail')?.focus(), 80);
+  } else if (tab === 'claim') {
     body.innerHTML = `
       <p class="sub">你在飞书报名名单里？回到首页认领名单找到自己 → 点击认领 → 邮箱验证码登录即完成绑定。</p>
       <div class="btn-row"><button class="btn primary" onclick="closeModal(); showTab('home')">去认领名单 →</button></div>
@@ -869,9 +887,56 @@ async function regVerify() {
     TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
     ME = d;
     closeModal();
-    toast(`${d.isNew ? '注册成功 ✓' : '登录成功 ✓ 欢迎回来'} <b>${d.user.player ? d.user.player.name : d.user.email}</b>${d.isNew ? '，去完善你的资料吧' : ''}`);
+    if (d.user.needs_password) {
+      toast(`${d.isNew ? '注册成功 ✓' : '登录成功 ✓'} 首次登录请设置密码（至少 8 位）`);
+      setTimeout(() => openSetPassword(), 300);
+    } else {
+      toast(`${d.isNew ? '注册成功 ✓' : '登录成功 ✓ 欢迎回来'} <b>${d.user.player ? d.user.player.name : d.user.email}</b>${d.isNew ? '，去完善你的资料吧' : ''}`);
+      renderUser(); refresh(); updateBadge(); showTab('me');
+      setTimeout(() => openGuide('reg'), 600);
+    }
+  } catch (e) { err(e.message); }
+}
+async function loginPassword() {
+  const email = document.getElementById('pwEmail').value.trim().toLowerCase();
+  const password = document.getElementById('pwPassword').value;
+  if (!email || !password) return err('请输入邮箱和密码');
+  try {
+    const d = await api('/auth/login-password', { method: 'POST', body: JSON.stringify({ email, password }) });
+    TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
+    ME = d;
+    closeModal();
+    toast(`登录成功 ✓ 欢迎回来 <b>${d.user.player ? d.user.player.name : d.user.email}</b>`);
     renderUser(); refresh(); updateBadge(); showTab('me');
-    setTimeout(() => openGuide('reg'), 600);
+  } catch (e) { err(e.message); }
+}
+/* ===== 设置/修改密码（首次登录强制 + 我的页入口） ===== */
+function openSetPassword(change = false) {
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>${change ? '修改登录密码' : '设置登录密码'}</h3>
+    <p class="sub">${change ? '修改后下次登录使用新密码。' : '第一次登录需要设置密码（至少 8 位），之后可用邮箱 + 密码登录，无需验证码。'}</p>
+    ${change ? `<div class="field"><label>当前密码</label><input id="cpCur" type="password" placeholder="当前密码" autocomplete="current-password"></div>` : ''}
+    <div class="field"><label>新密码</label><input id="np1" type="password" placeholder="至少 8 位" autocomplete="new-password"></div>
+    <div class="field"><label>确认新密码</label><input id="np2" type="password" placeholder="再输一遍" autocomplete="new-password"></div>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="savePassword(${change})">${change ? '确认修改' : '设置密码'}</button></div>`);
+  setTimeout(() => document.getElementById('np1')?.focus(), 80);
+}
+async function savePassword(change) {
+  const p1 = document.getElementById('np1').value, p2 = document.getElementById('np2').value;
+  if (p1.length < 8) return err('密码至少 8 位');
+  if (p1 !== p2) return err('两次输入的密码不一致');
+  try {
+    const body = { password: p1, confirm: p2 };
+    const cur = document.getElementById('cpCur');
+    if (cur) body.current = cur.value;
+    await api('/auth/set-password', { method: 'POST', body: JSON.stringify(body) });
+    closeModal();
+    toast(change ? '密码已修改 ✓' : '密码设置成功 ✓ 下次可用邮箱 + 密码登录');
+    renderUser(); refresh(); updateBadge();
+    if (curTab === 'me') renderMe();
+    if (!change) { showTab('home'); setTimeout(() => openGuide('reg'), 400); }
   } catch (e) { err(e.message); }
 }
 
@@ -957,9 +1022,14 @@ async function verifyCode() {
     TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
     ME = d;
     closeModal();
-    toast(`认证成功 ✓ <b>${d.user.player ? d.user.player.name : d.user.email}</b> 已登录`);
-    renderUser(); refresh(); updateBadge(); showTab('home');
-    setTimeout(() => openGuide('claim'), 600);
+    if (d.user.needs_password) {
+      toast(`认证成功 ✓ <b>${d.user.player ? d.user.player.name : d.user.email}</b> 已登录，首次登录请设置密码`);
+      setTimeout(() => openSetPassword(), 300);
+    } else {
+      toast(`认证成功 ✓ <b>${d.user.player ? d.user.player.name : d.user.email}</b> 已登录`);
+      renderUser(); refresh(); updateBadge(); showTab('home');
+      setTimeout(() => openGuide('claim'), 600);
+    }
   } catch (e) { err(e.message); }
 }
 
@@ -1124,9 +1194,9 @@ function openTeam(id) {
     ${t.role_needs ? `<div class="t-needs" style="margin-top:8px">需要：<b>${esc(t.role_needs)}</b></div>` : ''}
     <div class="progress-bar"><i style="width:${s.pct}%"></i></div>
 
-    <div class="section-title" style="margin:16px 0 8px">成员 ${t.member_count}</div>
+    <div class="section-title" style="margin:16px 0 8px">成员 ${t.member_count}<span style="font-size:10px;color:var(--text-3);font-weight:400">（点击查看成员资料）</span></div>
     <div class="me-list">${t.members.map(m => `
-      <div class="ann"><div class="a-top">
+      <div class="ann t-member" onclick="openDetail(${m.id})"><div class="a-top">
         ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
         <span class="a-title">${esc(m.name)}</span>
         <span style="font-size:10px;color:var(--text-3)">${esc(m.role || '')}</span>
