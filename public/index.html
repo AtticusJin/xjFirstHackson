@@ -1618,8 +1618,17 @@ function renderUser() {
 }
 
 /* ===== 通用 ===== */
-function modal(html) { document.getElementById('modalBox').innerHTML = html; document.getElementById('modal').classList.add('open'); }
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
+window.__modalStack = [];
+function modal(html) {
+  const box = document.getElementById('modalBox'), m = document.getElementById('modal');
+  if (m.classList.contains('open') && box.innerHTML.trim()) window.__modalStack.push(box.innerHTML);
+  box.innerHTML = html; m.classList.add('open');
+}
+function closeModal() {
+  const box = document.getElementById('modalBox'), m = document.getElementById('modal');
+  if (window.__modalStack.length) { box.innerHTML = window.__modalStack.pop(); return; }
+  m.classList.remove('open'); box.innerHTML = '';
+}
 function askConfirm(title, desc, okText, cb) {
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
