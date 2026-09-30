@@ -143,6 +143,11 @@ CREATE TABLE IF NOT EXISTS site_like_log (
   like_date TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now','localtime'))
 );
+CREATE TABLE IF NOT EXISTS site_views (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT,
+  ts TEXT
+);
 CREATE TABLE IF NOT EXISTS player_likes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   target_id INTEGER NOT NULL,
@@ -202,6 +207,8 @@ const DDL_PG = [
   `CREATE TABLE IF NOT EXISTS site_like_log (
     id SERIAL PRIMARY KEY, user_id INTEGER, ip TEXT, like_date TEXT NOT NULL,
     created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `,
+  `CREATE TABLE IF NOT EXISTS site_views (
+    id SERIAL PRIMARY KEY, ip TEXT, ts TEXT) `,
   `CREATE TABLE IF NOT EXISTS player_likes (
     id SERIAL PRIMARY KEY, target_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
     like_date TEXT NOT NULL,
@@ -235,7 +242,7 @@ async function migrate() {
 }
 
 /* ===== 数据导入：优先 export.json（真实数据快照），其次内置 seed ===== */
-const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'waiting_pool', 'site_likes', 'site_like_ips', 'site_like_log', 'player_likes'];
+const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'waiting_pool', 'site_likes', 'site_like_ips', 'site_like_log', 'player_likes', 'site_views'];
 
 async function importExportJson() {
   const f = path.join(__dirname, '..', 'data', 'export.json');

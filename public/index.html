@@ -31,6 +31,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .like-btn:active{transform:scale(.9)}
 .like-btn:hover{border-color:var(--pink);background:rgba(255,92,138,.16)}
 .like-btn.liked{background:rgba(255,92,138,.18);border-color:var(--pink)}
+/* 浏览量小图标 */
+.view-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(74,222,155,.08);border:1px solid rgba(74,222,155,.3);color:var(--green);border-radius:20px;padding:5px 10px;font-size:12px;cursor:default;flex:none;font-family:var(--mono)}
+.view-chip svg{display:block;flex:none}
 .like-num{font-size:11px;font-family:var(--mono)}
 .like-pop{animation:likePop .4s ease}
 @keyframes likePop{0%{transform:scale(1)}45%{transform:scale(1.45)}100%{transform:scale(1)}}
@@ -368,6 +371,10 @@ footer{margin-top:28px;text-align:center;font-family:var(--mono);font-size:9px;c
         <span class="like-ico" id="likeIco">♡</span>
         <span class="like-num" id="likeNum">0</span>
       </button>
+      <span class="view-chip" title="主页被浏览次数">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="viewNum">0</span>
+      </span>
       <div id="userChip" class="user-chip" style="display:none"></div>
     </div>
   </div>
@@ -500,10 +507,20 @@ async function refresh() {
   const [p, s, a] = await Promise.all([api('/players'), api('/schedules'), api('/announcements')]);
   players = p.players; schedules = s.schedules; announcements = a.announcements;
   renderStats(); renderGrid(); renderTimeline(); renderAnnounce();
+  loadLikes(); loadViews();
 }
 
 /* ===== 站点点赞：每人每天 5 次 ===== */
 let likeCount = 0, likeRemain = 5;
+/* ===== 主页浏览量：同设备 5 分钟内只计一次 ===== */
+async function loadViews() {
+  try {
+    const d = await api('/site/views');
+    const el = document.getElementById('viewNum');
+    if (el) el.textContent = d.count || 0;
+    api('/site/view', { method: 'POST' }).then(r => { if (r && r.count) { const e = document.getElementById('viewNum'); if (e) e.textContent = r.count; } }).catch(() => {});
+  } catch (e) { /* 接口不可用则不渲染 */ }
+}
 async function loadLikes() {
   try {
     const d = await api('/site/likes');
@@ -736,7 +753,7 @@ function openPlayerDetail(pid) {
       ${contactBox}
       <div class="d-like-bar">
         <button class="d-like${p.liked_today ? ' liked' : ''}" data-plbtn="${p.id}" onclick="togglePlayerLike(${p.id})">
-          <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span> 给 TA 点赞 <span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
+          <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span> <span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
         </button>
         <span class="d-like-hint">每人每天可给同一位选手点 1 个赞</span>
       </div>

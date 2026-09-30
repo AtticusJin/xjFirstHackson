@@ -242,6 +242,22 @@ app.get('/api/site/likes', wrap(async (req, res) => {
   }
   res.json({ ok: true, count: (a ? a.n : 0) + (b ? b.n : 0) + (c ? c.n : 0), remain });
 }));
+/* 站点浏览量：同 IP 5 分钟内只计一次 */
+app.get('/api/site/views', wrap(async (req, res) => {
+  const r = await store.get('SELECT COUNT(*) AS n FROM site_views');
+  res.json({ ok: true, count: r ? r.n : 0 });
+}));
+app.post('/api/site/view', wrap(async (req, res) => {
+  const ip = clientIp(req);
+  if (ip) {
+    const ts = Date.now();
+    const recent = await store.get('SELECT 1 FROM site_views WHERE ip = ? AND ts > ?', ip, String(ts - 300000));
+    if (!recent) await store.run('INSERT INTO site_views (ip, ts) VALUES (?, ?)', ip, String(ts));
+  }
+  const r = await store.get('SELECT COUNT(*) AS n FROM site_views');
+  res.json({ ok: true, count: r ? r.n : 0 });
+}));
+
 app.post('/api/site/like', wrap(async (req, res) => {
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
   const countAll = async () => {
