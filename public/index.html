@@ -54,6 +54,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 /* 头像相册上传 */
 .avatar-pick img{width:72px;height:72px;border-radius:16px;object-fit:cover;border:1px solid var(--cyan)}
 .avatar-pick .ap-empty{width:72px;height:72px;border-radius:16px;background:var(--card);border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:10px}
+.share-preview{width:100%;display:flex;justify-content:center;margin:12px 0}
+.share-preview canvas{max-width:100%;height:auto;border-radius:14px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.5)}
 
 /* hero */
 .hero{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:16px}
@@ -873,7 +875,10 @@ function renderMe() {
           <p>${esc(p.intro || '还没有自我介绍，去完善你的资料吧。')}</p>`
         : `<b>已登录</b><p>当前账号（${esc(ME.user.email)}）还没有选手身份，请先认领或注册。</p>`}
       </div>
-      <button class="btn ghost sm" onclick="openEditProfile()">✎ 编辑资料</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn ghost sm" onclick="openEditProfile()">✎ 编辑资料</button>
+        <button class="btn ghost sm" onclick="shareCard()">↗ 分享名片</button>
+      </div>
     </div>
     ${p ? '' : `<div class="me-section"><button class="btn primary btn-block" onclick="showTab('home')">去认领 / 注册身份</button></div>`}
     ${ME.user.is_admin ? `<div class="me-section"><button class="btn primary btn-block" onclick="location.href='/admin.html'">⚙ 管理后台</button></div>` : ''}
@@ -1247,6 +1252,101 @@ function addTag(t) {
 function rmTag(i) {
   TAG_LIST.splice(i, 1);
   renderTagBox();
+}
+function loadImg(url, cross) {
+  return new Promise((res, rej) => { const i = new Image(); if (cross) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = url; });
+}
+function shareCard() {
+  const p = ME && ME.user && ME.user.player;
+  if (!p) return toast('请先登录', true);
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>分享我的名片</h3>
+    <p class="sub">生成你的黑客松名片 · 长按图片或点下方按钮保存到相册</p>
+    <div class="share-preview"><canvas id="shareCanvas" width="750" height="1000"></canvas></div>
+    <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveShareCard()">⬇ 保存到相册</button></div>`);
+  setTimeout(() => drawShareCard(p), 60);
+}
+function drawShareCard(p) {
+  const c = document.getElementById('shareCanvas'); if (!c) return;
+  const ctx = c.getContext('2d'), W = c.width, H = c.height;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0b0f1e'); g.addColorStop(.5, '#0d1428'); g.addColorStop(1, '#0a0d1a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(70,240,200,.55)'; ctx.lineWidth = 6; ctx.strokeRect(24, 24, W - 48, H - 48);
+  ctx.strokeStyle = 'rgba(139,124,255,.25)'; ctx.lineWidth = 1; ctx.strokeRect(38, 38, W - 76, H - 76);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 48px sans-serif'; ctx.fillText('XJHACK', W / 2, 112);
+  ctx.fillStyle = '#c9d1e5'; ctx.font = '26px sans-serif'; ctx.fillText('学军首届黑客松 · 组队名片', W / 2, 160);
+  const cx = W / 2, cy = 306, R = 104;
+  const finish = (img) => {
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = '#141a2e'; ctx.fill();
+    ctx.strokeStyle = '#46f0c8'; ctx.lineWidth = 6; ctx.stroke(); ctx.clip();
+    if (img) {
+      const iw = img.width, ih = img.height, ar = iw / ih;
+      let dw = R * 2, dh = R * 2;
+      if (ar > 1) dh = dw / ar; else dw = dh * ar;
+      ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+    } else {
+      ctx.font = 'bold 88px sans-serif'; ctx.fillStyle = '#70f8d8';
+      ctx.fillText(String(p.name || '?').charAt(0), cx, cy + 30);
+    }
+    ctx.restore();
+    const name = String(p.name || '选手');
+    let nf = 52;
+    ctx.font = `bold ${nf}px sans-serif`;
+    while (ctx.measureText(name).width > W - 120 && nf > 30) { nf -= 2; ctx.font = `bold ${nf}px sans-serif`; }
+    ctx.fillStyle = '#eef4ff'; ctx.fillText(name, cx, 470);
+    if (p.nickname) { ctx.fillStyle = '#8b94a8'; ctx.font = '24px sans-serif'; ctx.fillText('@' + String(p.nickname), cx, 512); }
+    ctx.fillStyle = '#7fe9cf'; ctx.font = '26px sans-serif';
+    ctx.fillText(String(p.grade || '') + (p.grade ? ' · ' : '') + (roleList(p.role).join(' / ') || '未标注方向'), cx, 560);
+    const tags = (p.tags || '').split(/[\s,，]+/).filter(Boolean).slice(0, 6);
+    if (tags.length) {
+      let y0 = 610, col = 0, x0 = cx - 210;
+      ctx.font = '22px sans-serif';
+      tags.forEach(t => {
+        const tw = ctx.measureText(t).width + 26;
+        if (col > 0 && x0 + col * 140 + tw > W - 40) { col = 0; y0 += 48; }
+        const bx = x0 + col * 140;
+        ctx.fillStyle = 'rgba(70,240,200,.08)'; ctx.strokeStyle = 'rgba(70,240,200,.35)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(bx, y0, tw, 36, 8); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#70f8d8'; ctx.textAlign = 'center'; ctx.fillText(t, bx + tw / 2, y0 + 24);
+        col++;
+      });
+    }
+    const intro = String(p.intro || '');
+    if (intro) {
+      ctx.fillStyle = '#aab4cc'; ctx.font = '24px sans-serif'; ctx.textAlign = 'left';
+      const lines = [], lw = W - 140, mw = 5;
+      let cur = '';
+      for (const ch of intro) {
+        const t = cur + ch;
+        if (ctx.measureText(t).width > lw) { lines.push(cur); cur = ch; if (lines.length >= mw) break; }
+        else cur = t;
+      }
+      if (lines.length < mw && cur) lines.push(cur);
+      if (lines.length > mw) { lines.length = mw; lines[mw - 1] = lines[mw - 1].replace(/.{2}$/, '…'); }
+      let iy = tags.length ? y0 + 44 : 660;
+      lines.forEach(l => { ctx.fillText(l, 70, iy); iy += 36; });
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 34px monospace';
+    ctx.fillText('http://47.76.118.161/', cx, H - 150);
+    ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
+    ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 104);
+  };
+  if (p.avatar) loadImg(p.avatar, true).then(finish).catch(() => loadImg(p.avatar, false).then(finish).catch(() => finish(null)));
+  else finish(null);
+}
+function saveShareCard() {
+  const c = document.getElementById('shareCanvas'); if (!c) return;
+  try {
+    const a = document.createElement('a');
+    a.href = c.toDataURL('image/png');
+    a.download = 'XJHACK-名片-' + String(ME.user.player.name || '') + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('名片已生成，可在相册/下载中查看');
+  } catch (e) { toast('生成失败，请重试', true); }
 }
 function openEditProfile() {
   if (!ME || !ME.user.player) return toast('请先登录', true);
