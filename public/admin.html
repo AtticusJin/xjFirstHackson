@@ -61,6 +61,20 @@ td .btn{width:auto;padding:5px 12px;font-size:11px}
 .login-card h2{font-family:var(--display);font-size:24px;font-weight:400}
 .login-card p{font-size:13px;color:var(--text-2);margin:12px 0 22px;line-height:1.8}
 .empty{color:var(--text-3);text-align:center;padding:20px;font-family:var(--mono);font-size:12px}
+.modal-mask{position:fixed;inset:0;background:rgba(4,8,18,.75);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:30px 14px;overflow-y:auto}
+.modal-mask.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;width:100%;max-width:640px;margin:auto}
+.modal h3{font-family:var(--display);font-size:18px;font-weight:400;margin-bottom:14px;letter-spacing:.5px}
+.modal .m-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal label{display:block;font-family:var(--mono);font-size:10px;color:var(--text-3);margin-bottom:4px}
+.modal input,.modal select,.modal textarea{width:100%;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-size:12px;outline:none;font-family:var(--mono);box-sizing:border-box}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--cyan)}
+.modal textarea{min-height:70px;resize:vertical;line-height:1.6}
+.modal .m-full{grid-column:1/-1}
+.modal .m-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.sch-box{margin-bottom:12px}
+.sch-box input{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px;font-size:12px;outline:none;font-family:var(--mono);width:100%;max-width:320px;box-sizing:border-box}
+.sch-box input:focus{border-color:var(--violet)}
 .table-scroll{overflow-x:auto}
 @media(max-width:760px){.add-form{grid-template-columns:1fr}table{font-size:11px}td,th{padding:6px 4px}.wrap{padding:14px 12px 60px}.stats .st{min-width:auto;flex:1}.stats{gap:8px}}
 </style>
@@ -103,22 +117,26 @@ td .btn{width:auto;padding:5px 12px;font-size:11px}
 
     <div class="panel" id="tab-claims">
       <h3>认领管理</h3>
-      <table><thead><tr><th style="width:50px">ID</th><th>选手</th><th>微信号</th><th>绑定邮箱</th><th style="width:90px">状态</th><th style="width:130px">时间</th><th style="width:90px">操作</th></tr></thead>
+      <table><thead><tr><th style="width:44px">ID</th><th>选手</th><th>微信号</th><th>认领人邮箱</th><th style="width:80px">状态</th><th style="width:120px">时间</th><th style="width:90px">操作</th></tr></thead>
       <tbody id="claimBody"></tbody></table>
     </div>
 
     <div class="panel" id="tab-players">
       <h3>选手管理</h3>
+      <div class="sch-box"><input id="playerSearch" placeholder="🔍 按姓名 / 昵称 / 认领邮箱搜索…" oninput="renderPlayers()"></div>
       <div class="table-scroll">
-      <table><thead><tr><th style="width:50px">ID</th><th style="width:110px">姓名</th><th style="width:110px">类型</th><th style="width:130px">方向</th><th style="width:130px">年级</th><th style="width:120px">宿舍</th><th style="width:100px">状态</th><th style="width:100px">操作</th></tr></thead>
+      <table><thead><tr><th style="width:44px">ID</th><th style="width:100px">姓名</th><th style="width:90px">方向</th><th style="width:110px">年级</th><th style="width:90px">宿舍</th><th style="width:130px">认领人</th><th style="width:80px">状态</th><th style="width:150px">操作</th></tr></thead>
       <tbody id="playerBody"></tbody></table>
       </div>
       <div class="add-form" id="addPlayerForm">
         <input id="npName" placeholder="姓名 *">
+        <input id="npNickname" placeholder="昵称">
         <input id="npWechat" placeholder="微信号（认领校验用）">
-        <input id="npRole" placeholder="方向（开发/设计/产品/硬件/运营）">
+        <input id="npRole" placeholder="方向（开发/设计/产品/硬件/运营/AI）">
         <input id="npGrade" placeholder="年级（如：学军中学·高二）">
         <input id="npDorm" placeholder="宿舍（如：1号楼202）">
+        <input id="npIntro" placeholder="个人简介">
+        <input id="npTags" placeholder="标签（空格分隔，如：Python C++）">
         <button class="btn add" onclick="addPlayer()">+ 补录选手</button>
       </div>
     </div>
@@ -126,7 +144,7 @@ td .btn{width:auto;padding:5px 12px;font-size:11px}
     <div class="panel" id="tab-teams">
       <h3>队伍管理</h3>
       <div class="table-scroll">
-      <table><thead><tr><th style="width:50px">ID</th><th>队伍名称</th><th style="width:100px">队长</th><th style="width:60px">人数</th><th>项目名</th><th style="width:140px">项目状态</th><th style="width:110px">操作</th></tr></thead>
+      <table><thead><tr><th style="width:44px">ID</th><th>队伍名称</th><th style="width:90px">队长</th><th style="width:52px">人数</th><th>项目名</th><th style="width:130px">项目状态</th><th style="width:180px">操作</th></tr></thead>
       <tbody id="teamBody"></tbody></table>
       </div>
     </div>
@@ -147,6 +165,7 @@ td .btn{width:auto;padding:5px 12px;font-size:11px}
   </div>
 </div>
 
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
 <div class="toast-wrap" id="toasts"></div>
 
 <script>
@@ -183,11 +202,16 @@ async function load() {
 }
 function render() {
   const claimed = DATA.claimed;
+  const st = DATA.stats || {};
   document.getElementById('stats').innerHTML = `
     <div class="st"><b>${DATA.total}</b><span>选手总数</span></div>
     <div class="st"><b>${claimed}</b><span>已认领</span></div>
-    <div class="st"><b>${(DATA.teams || []).length}</b><span>队伍</span></div>
-    <div class="st"><b>${(DATA.pool || []).length}</b><span>等待池</span></div>`;
+    <div class="st"><b>${st.teams || 0}</b><span>活跃队伍</span></div>
+    <div class="st"><b>${st.team_members || 0}</b><span>已组队人数</span></div>
+    <div class="st"><b>${(DATA.pool || []).length}</b><span>等待池</span></div>
+    <div class="st"><b>${st.pending_req || 0}</b><span>待处理申请</span></div>
+    <div class="st"><b>${st.site_likes || 0}</b><span>总点赞</span></div>
+    <div class="st"><b>${st.friend_pairs || 0}</b><span>好友对数</span></div>`;
   renderSchedules(); renderAnnouncements(); renderClaims(); renderPlayers(); renderTeams(); renderPool();
 }
 function renderPool() {
@@ -257,7 +281,7 @@ function renderAnnouncements() {
     <tr data-id="${a.id}">
       <td><input class="f-tag" value="${esc(a.tag)}" style="width:70px"></td>
       <td><input class="f-title" value="${esc(a.title)}"></td>
-      <td><input class="f-body" value="${esc(a.body)}"></td>
+      <td><textarea class="f-body" rows="2" style="width:100%;min-width:220px">${esc(a.body)}</textarea></td>
       <td><input class="f-time" value="${esc(a.time)}" style="width:80px"></td>
       <td><input type="checkbox" class="f-pin" ${a.pinned ? 'checked' : ''}></td>
       <td><div class="row-actions"><button class="btn save" onclick="saveAnn(${a.id}, this)">保存</button><button class="btn del" onclick="delAnn(${a.id})">删</button></div></td>
@@ -302,16 +326,24 @@ async function releaseClaim(id) {
 }
 
 function renderPlayers() {
-  document.getElementById('playerBody').innerHTML = DATA.players?.length ? DATA.players.map(p => `
+  const q = (document.getElementById('playerSearch')?.value || '').trim().toLowerCase();
+  const list = (DATA.players || []).filter(p =>
+    !q || (p.name + ' ' + (p.nickname || '') + ' ' + (p.claim_email || '') + ' ' + (p.email || '')).toLowerCase().includes(q));
+  document.getElementById('playerBody').innerHTML = list.length ? list.map(p => `
     <tr data-id="${p.id}">
       <td>${p.id}</td>
-      <td>${esc(p.name)}${p.self_registered ? ' <span class="badge pending" style="font-size:8px">注册</span>' : ''}</td>
-      <td><select class="f-role">${['开发','设计','产品','硬件','运营','教育','AI','其他',''].map(x => `<option value="${x}" ${p.role === x ? 'selected' : ''}>${x || '—'}</option>`).join('')}</select></td>
-      <td><input class="f-grade" value="${esc(p.grade)}"></td>
-      <td><input class="f-dorm" value="${esc(p.dorm)}"></td>
+      <td>${esc(p.name)}${p.self_registered ? ' <span class="badge pending" style="font-size:8px">注册</span>' : ''}${p.is_demo ? ' <span class="badge bound" style="font-size:8px">演示</span>' : ''}${p.retired ? ' <span class="badge released" style="font-size:8px">撤下</span>' : ''}</td>
+      <td>${esc(p.role || '—')}</td>
+      <td>${esc(p.grade || '—')}</td>
+      <td>${esc(p.dorm || '—')}</td>
+      <td style="font-family:var(--mono);color:var(--text-2)">${p.status === 'claimed' ? (esc(p.claim_email || '') || '<span style="color:var(--amber)">已认领</span>') : '<span style="color:var(--text-3)">—</span>'}</td>
       <td><select class="f-status">${['unclaimed','claimed'].map(x => `<option value="${x}" ${p.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
-      <td><div class="row-actions"><button class="btn save" onclick="savePlayer(${p.id}, this)">保存</button></div></td>
-    </tr>`).join('') : '<tr><td colspan="8" class="empty">暂无选手，用下方表单补录或导入 CSV</td></tr>';
+      <td><div class="row-actions">
+        <button class="btn save" onclick="savePlayer(${p.id}, this)">保存</button>
+        <button class="btn" onclick="showPlayerDetail(${p.id})">详情</button>
+        <button class="btn del" onclick="deletePlayer(${p.id}, '${esc(p.name)}')">删</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">' + (q ? '没有匹配的选手' : '暂无选手，用下方表单补录或导入 CSV') + '</td></tr>';
 }
 async function savePlayer(id, btn) {
   const tr = btn.closest('tr');
@@ -320,11 +352,57 @@ async function savePlayer(id, btn) {
   try { await api('/admin/players/' + id, { method: 'PUT', body: JSON.stringify(body) }); toast('选手已更新'); await load(); }
   catch (e) { toast(e.message, true); btn.disabled = false; }
 }
+async function deletePlayer(id, name) {
+  if (!confirm(`确认删除选手「${name}」？\n将同时删除其账号、认领记录、队伍关系与点赞记录，不可恢复。`)) return;
+  try { await api('/admin/players/' + id, { method: 'DELETE' }); toast('选手已删除'); await load(); }
+  catch (e) { toast(e.message, true); }
+}
+async function showPlayerDetail(id) {
+  const p = DATA.players.find(x => x.id === id);
+  if (!p) return;
+  const claimBy = p.status === 'claimed' ? (p.claim_email || '已认领') : '未认领';
+  document.getElementById('modalBox').innerHTML = `
+    <h3>选手详情 #${p.id} · ${esc(p.name)}</h3>
+    <div class="m-grid">
+      <div><label>姓名</label><input id="pdName" value="${esc(p.name)}"></div>
+      <div><label>昵称</label><input id="pdNickname" value="${esc(p.nickname || '')}"></div>
+      <div><label>方向</label><select id="pdRole">${['开发','设计','产品','硬件','运营','教育','AI','其他',''].map(x => `<option value="${x}" ${p.role === x ? 'selected' : ''}>${x || '—'}</option>`).join('')}</select></div>
+      <div><label>年级</label><input id="pdGrade" value="${esc(p.grade || '')}"></div>
+      <div><label>宿舍</label><input id="pdDorm" value="${esc(p.dorm || '')}"></div>
+      <div><label>微信号</label><input id="pdWechat" value="${esc(p.wechat || '')}"></div>
+      <div><label>联系方式（加密存储）</label><input id="pdContact" value="${esc(p.contact || '')}" placeholder="手机号 / 邮箱等"></div>
+      <div><label>头像 URL</label><input id="pdAvatar" value="${esc(p.avatar || '')}"></div>
+      <div><label>认领状态：${esc(claimBy)}</label><select id="pdStatus">${['unclaimed','claimed'].map(x => `<option value="${x}" ${p.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div><label>标签（空格分隔）</label><input id="pdTags" value="${esc(p.tags || '')}"></div>
+      <div class="m-full"><label>个人简介</label><textarea id="pdIntro">${esc(p.intro || '')}</textarea></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn save" onclick="savePlayerDetail(${p.id})">保存修改</button>
+    </div>`;
+  document.getElementById('modalMask').classList.add('on');
+}
+async function savePlayerDetail(id) {
+  const g = x => document.getElementById(x).value;
+  const body = {
+    name: g('pdName').trim(), nickname: g('pdNickname').trim(), role: g('pdRole'),
+    grade: g('pdGrade').trim(), dorm: g('pdDorm').trim(), wechat: g('pdWechat').trim(),
+    contact: g('pdContact').trim(), avatar: g('pdAvatar').trim(), tags: g('pdTags').trim(),
+    intro: g('pdIntro').trim(), status: g('pdStatus')
+  };
+  if (!body.name) return toast('姓名不能为空', true);
+  try {
+    await api('/admin/players/' + id, { method: 'PUT', body: JSON.stringify(body) });
+    toast('已保存 ✓'); closeModal(); await load();
+  } catch (e) { toast(e.message, true); }
+}
+function closeModal() { document.getElementById('modalMask').classList.remove('on'); }
+document.getElementById('modalMask').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 async function addPlayer() {
   const g = id => document.getElementById(id).value.trim();
-  const body = { name: g('npName'), wechat: g('npWechat'), role: g('npRole'), grade: g('npGrade'), dorm: g('npDorm') };
+  const body = { name: g('npName'), nickname: g('npNickname'), wechat: g('npWechat'), role: g('npRole'), grade: g('npGrade'), dorm: g('npDorm'), intro: g('npIntro'), tags: g('npTags') };
   if (!body.name) return toast('姓名必填', true);
-  try { await api('/admin/players', { method: 'POST', body: JSON.stringify(body) }); toast('选手已补录'); ['npName','npWechat','npRole','npGrade','npDorm'].forEach(i => document.getElementById(i).value = ''); load(); }
+  try { await api('/admin/players', { method: 'POST', body: JSON.stringify(body) }); toast('选手已补录'); ['npName','npNickname','npWechat','npRole','npGrade','npDorm','npIntro','npTags'].forEach(i => document.getElementById(i).value = ''); load(); }
   catch (e) { toast(e.message, true); }
 }
 
@@ -339,7 +417,10 @@ function renderTeams() {
       <td>${t.member_count}</td>
       <td>${esc(t.project_name || '—')}</td>
       <td><select class="f-ts">${Object.keys(TS).map(k => `<option value="${k}" ${t.project_status === k ? 'selected' : ''}>${TS[k].label}</option>`).join('')}</select></td>
-      <td><div class="row-actions"><button class="btn save" onclick="saveTeamStatus(${t.id}, this)">保存</button></div></td>
+      <td><div class="row-actions">
+        <button class="btn save" onclick="saveTeamStatus(${t.id}, this)">保存</button>
+        <button class="btn" onclick="showTeamMembers(${t.id})">成员</button>
+      </div></td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" class="empty">暂无队伍</td></tr>';
 }
@@ -350,6 +431,32 @@ async function saveTeamStatus(id, btn) {
   if (st === 'disbanded' && !confirm(`确认解散「${tr.querySelector('td:nth-child(2)').textContent.trim()}」？`)) { btn.disabled = false; return; }
   try { await api('/admin/teams/' + id + '/status', { method: 'PUT', body: JSON.stringify({ project_status: st }) }); toast('队伍状态已更新'); await load(); }
   catch (e) { toast(e.message, true); btn.disabled = false; }
+}
+
+async function showTeamMembers(id) {
+  const t = DATA.teams.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('modalBox').innerHTML = `<h3>队伍成员 · ${esc(t.name)}</h3><div id="tmBody" style="margin-bottom:10px">加载中…</div>`;
+  document.getElementById('modalMask').classList.add('on');
+  try {
+    const d = await api('/admin/teams/' + id + '/members');
+    const rows = d.members.map(m => `
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line-soft)">
+        <div style="flex:1;min-width:0">
+          <b>${esc(m.name)}</b>${m.id === t.leader_id ? ' <span class="badge bound" style="font-size:9px">队长</span>' : ''}
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-3)">${esc(m.role || '—')}${m.grade ? ' · ' + esc(m.grade) : ''}${m.contact ? ' · 📞 ' + esc(m.contact) : ''}</div>
+        </div>
+        ${m.id === t.leader_id ? '' : `<button class="btn del" onclick="kickMember(${t.id}, ${m.id}, '${esc(m.name)}')">踢出</button>`}
+      </div>`).join('');
+    document.getElementById('tmBody').innerHTML = rows || '<div class="empty">暂无成员</div>';
+  } catch (e) {
+    document.getElementById('tmBody').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+async function kickMember(teamId, pid, name) {
+  if (!confirm(`确认将「${name}」移出该队伍？`)) return;
+  try { await api('/admin/teams/' + teamId + '/kick', { method: 'POST', body: JSON.stringify({ player_id: pid }) }); toast('已移出队伍'); showTeamMembers(teamId); await load(); }
+  catch (e) { toast(e.message, true); }
 }
 
 async function logout() {

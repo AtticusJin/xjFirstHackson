@@ -777,6 +777,20 @@ async function requireAdmin(req, res, next) {
 }
 
 app.get('/api/admin/overview', requireAdmin, wrap(async (req, res) => {
+  const teamCount = Number((await store.get("SELECT COUNT(*) c FROM teams WHERE status != 'disbanded'")).c);
+  const teamMemberCount = Number((await store.get('SELECT COUNT(*) c FROM team_members')).c);
+  const pendingReq = Number((await store.get("SELECT COUNT(*) c FROM team_requests WHERE status = 'pending'")).c);
+  const siteLike = Number((await store.get('SELECT COUNT(*) c FROM site_like_log')).c);
+  const plRows = await store.all('SELECT user_id, target_id FROM player_likes');
+  const pairMap = new Map();
+  for (const r of plRows) {
+    if (!pairMap.has(r.user_id)) pairMap.set(r.user_id, new Set());
+    pairMap.get(r.user_id).add(r.target_id);
+  }
+  let friendPairs = 0;
+  for (const [u, targets] of pairMap) for (const t of targets) {
+    if (pairMap.has(t) && pairMap.get(t).has(u)) friendPairs++;
+  }
   res.json({
     ok: true,
     total: Number((await store.get('SELECT COUNT(*) c FROM players')).c),
@@ -786,7 +800,8 @@ app.get('/api/admin/overview', requireAdmin, wrap(async (req, res) => {
     announcements: await store.all('SELECT * FROM announcements ORDER BY pinned DESC, id DESC'),
     players: (await store.all('SELECT * FROM players ORDER BY id')).map(p => ({ ...p, contact: decContact(p.contact) || '' })),
     teams: await store.all("SELECT t.*, (SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id) AS member_count FROM teams t ORDER BY t.id DESC"),
-    pool: await store.all('SELECT w.id, w.msg, w.created_at, p.name, p.role, p.grade FROM waiting_pool w JOIN players p ON p.id = w.player_id WHERE w.status = ? ORDER BY w.id', 'waiting')
+    pool: await store.all('SELECT w.id, w.msg, w.created_at, p.name, p.role, p.grade FROM waiting_pool w JOIN players p ON p.id = w.player_id WHERE w.status = ? ORDER BY w.id', 'waiting'),
+    stats: { teams: teamCount, team_members: teamMemberCount, pending_req: pendingReq, site_likes: siteLike, friend_pairs: friendPairs }
   });
 }));
 
@@ -846,6 +861,24 @@ app.post('/api/admin/pool/:id/assign', requireAdmin, wrap(async (req, res) => {
 }));
 
 /* 管理员：队伍状态调整 / 解散 */
+app.get('/api/admin/teams/:id/members', requireAdmin, wrap(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const t = await store.get('SELECT * FROM teams WHERE id = ?', id);
+  if (!t) return res.status(404).json({ ok: false, msg: '队伍不存在' });
+  const members = await store.all('SELECT p.id, p.name, p.role, p.grade, p.dorm, p.avatar, p.contact, p.status FROM team_members m JOIN players p ON p.id = m.player_id WHERE m.team_id = ? ORDER BY p.id', id);
+  res.json({ ok: true, members: members.map(m => ({ ...m, contact: decContact(m.contact) || '' })) });
+}));
+
+app.post('/api/admin/teams/:id/kick', requireAdmin, wrap(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const pid = parseInt(req.body?.player_id, 10);
+  const t = await store.get('SELECT * FROM teams WHERE id = ?', id);
+  if (!t) return res.status(404).json({ ok: false, msg: '队伍不存在' });
+  if (t.leader_id === pid) return res.status(400).json({ ok: false, msg: '不能踢出队长，请先解散队伍' });
+  await store.run('DELETE FROM team_members WHERE team_id = ? AND player_id = ?', id, pid);
+  res.json({ ok: true, msg: '已将该成员移出队伍' });
+}));
+
 app.put('/api/admin/teams/:id/status', requireAdmin, wrap(async (req, res) => {
   const team = await store.get('SELECT * FROM teams WHERE id = ?', parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在' });
@@ -899,6 +932,23 @@ app.post('/api/admin/claims/:id/release', requireAdmin, wrap(async (req, res) =>
   res.json({ ok: true });
 }));
 
+app.delete('/api/admin/players/:id', requireAdmin, wrap(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const p = await store.get('SELECT * FROM players WHERE id = ?', id);
+  if (!p) return res.status(404).json({ ok: false, msg: '选手不存在' });
+  if (p.is_demo) return res.status(400).json({ ok: false, msg: '模拟账号请用「清理模拟账号」接口' });
+  const led = await store.get("SELECT COUNT(*) c FROM teams WHERE leader_id = ? AND status != 'disbanded'", id);
+  if (Number(led.c) > 0) return res.status(400).json({ ok: false, msg: '该选手是活跃队伍队长，请先解散其队伍' });
+  await store.run('DELETE FROM users WHERE player_id = ?', id);
+  await store.run('DELETE FROM claims WHERE player_id = ?', id);
+  await store.run('DELETE FROM team_members WHERE player_id = ?', id);
+  await store.run('DELETE FROM team_requests WHERE player_id = ?', id);
+  await store.run('DELETE FROM waiting_pool WHERE player_id = ?', id);
+  await store.run('DELETE FROM player_likes WHERE target_id = ? OR user_id = (SELECT id FROM users WHERE player_id = ?)', id, id);
+  await store.run('DELETE FROM players WHERE id = ?', id);
+  res.json({ ok: true, msg: '选手已删除（含其账号/认领/队伍关系/点赞记录）' });
+}));
+
 app.post('/api/admin/players', requireAdmin, wrap(async (req, res) => {
   const { name, nickname, role, grade, dorm, intro, tags, wechat, avatar } = req.body || {};
   if (!name) return res.status(400).json({ ok: false, msg: '缺少姓名' });
@@ -907,10 +957,22 @@ app.post('/api/admin/players', requireAdmin, wrap(async (req, res) => {
   res.json({ ok: true, id: Number(r.lastInsertRowid) });
 }));
 app.put('/api/admin/players/:id', requireAdmin, wrap(async (req, res) => {
-  const { role, grade, dorm, status } = req.body || {};
-  await store.run('UPDATE players SET role=?, grade=?, dorm=?, status=? WHERE id=?',
-    role || '', grade || '', dorm || '', status || 'unclaimed', parseInt(req.params.id, 10));
-  res.json({ ok: true });
+  const { name, nickname, role, grade, dorm, intro, tags, wechat, avatar, status, contact } = req.body || {};
+  const cur = await store.get('SELECT * FROM players WHERE id = ?', parseInt(req.params.id, 10));
+  if (!cur) return res.status(404).json({ ok: false, msg: '选手不存在' });
+  const next = {
+    name: name ?? cur.name, nickname: nickname ?? cur.nickname,
+    role: role ?? cur.role, grade: grade ?? cur.grade, dorm: dorm ?? cur.dorm,
+    intro: intro ?? cur.intro, tags: tags ?? cur.tags, wechat: wechat ?? cur.wechat,
+    avatar: avatar ?? cur.avatar, status: status ?? cur.status
+  };
+  await store.run('UPDATE players SET name=?, nickname=?, role=?, grade=?, dorm=?, intro=?, tags=?, wechat=?, avatar=?, status=? WHERE id=?',
+    next.name, next.nickname || '', next.role || '', next.grade || '', next.dorm || '',
+    next.intro || '', next.tags || '', next.wechat || '', next.avatar || '', next.status || 'unclaimed', parseInt(req.params.id, 10));
+  if (contact !== undefined && String(contact) !== (decContact(cur.contact) || '')) {
+    await store.run('UPDATE players SET contact = ? WHERE id = ?', encContact(String(contact)), parseInt(req.params.id, 10));
+  }
+  res.json({ ok: true, msg: '选手已更新' });
 }));
 
 /* ===== 启动：初始化数据层 → 联系方式加密迁移 → 监听 ===== */
