@@ -1273,67 +1273,66 @@ function shareCard() {
 }
 function drawShareCard(p, noAvatar) {
   const c = document.getElementById('shareCanvas'); if (!c) return;
-  const ctx = c.getContext('2d'), W = c.width, H = c.height;
+  const ctx = c.getContext('2d');
+  const W = 750, cx = W / 2;
+  const tags = (p.tags || '').split(/[\s,，]+/).filter(Boolean).slice(0, 6);
+  ctx.font = '24px sans-serif';
+  const introLines = (() => {
+    if (!p.intro) return [];
+    const maxW = W - 140, out = [];
+    String(p.intro).split(/\n/).forEach(para => {
+      if (!para) { out.push(''); return; }
+      let cur = '';
+      for (const ch of para) {
+        if (cur && ctx.measureText(cur + ch).width > maxW) { out.push(cur); cur = ch; }
+        else cur += ch;
+      }
+      out.push(cur);
+    });
+    return out;
+  })();
+  const yName = 470, yNick = 512, yRole = 560;
+  let y = 610;
+  if (tags.length) y += Math.ceil(tags.length / 3) * 48 + 6;
+  const yIntro = y + (introLines.length ? 8 : 0);
+  y = yIntro + introLines.length * 38;
+  const H = y + 200;
+  c.width = W; c.height = H;
   const g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#0b0f1e'); g.addColorStop(.5, '#0d1428'); g.addColorStop(1, '#0a0d1a');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = 'rgba(70,240,200,.55)'; ctx.lineWidth = 6; ctx.strokeRect(24, 24, W - 48, H - 48);
   ctx.strokeStyle = 'rgba(139,124,255,.25)'; ctx.lineWidth = 1; ctx.strokeRect(38, 38, W - 76, H - 76);
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 48px sans-serif'; ctx.fillText('XJHACK', W / 2, 112);
-  ctx.fillStyle = '#c9d1e5'; ctx.font = '26px sans-serif'; ctx.fillText('学军首届黑客松 · 组队名片', W / 2, 160);
-  const cx = W / 2, cy = 306, R = 104;
-  const finish = (img) => {
-    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = '#141a2e'; ctx.fill();
-    ctx.strokeStyle = '#46f0c8'; ctx.lineWidth = 6; ctx.stroke(); ctx.clip();
-    if (img) {
-      const iw = img.width, ih = img.height, ar = iw / ih;
-      let dw = R * 2, dh = R * 2;
-      if (ar > 1) dh = dw / ar; else dw = dh * ar;
-      ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
-    } else {
-      ctx.font = 'bold 88px sans-serif'; ctx.fillStyle = '#70f8d8';
-      ctx.fillText(String(p.name || '?').charAt(0), cx, cy + 30);
-    }
-    ctx.restore();
+  ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 48px sans-serif'; ctx.fillText('XJHACK', cx, 112);
+  ctx.fillStyle = '#c9d1e5'; ctx.font = '26px sans-serif'; ctx.fillText('学军首届黑客松 · 组队名片', cx, 160);
+  const cyAv = 306, R = 104;
+  const drawRest = () => {
     const name = String(p.name || '选手');
-    let nf = 52;
-    ctx.font = `bold ${nf}px sans-serif`;
+    let nf = 52; ctx.font = `bold ${nf}px sans-serif`;
     while (ctx.measureText(name).width > W - 120 && nf > 30) { nf -= 2; ctx.font = `bold ${nf}px sans-serif`; }
-    ctx.fillStyle = '#eef4ff'; ctx.fillText(name, cx, 470);
-    if (p.nickname) { ctx.fillStyle = '#8b94a8'; ctx.font = '24px sans-serif'; ctx.fillText('@' + String(p.nickname), cx, 512); }
-    ctx.fillStyle = '#7fe9cf'; ctx.font = '26px sans-serif';
-    ctx.fillText(String(p.grade || '') + (p.grade ? ' · ' : '') + (roleList(p.role).join(' / ') || '未标注方向'), cx, 560);
-    const tags = (p.tags || '').split(/[\s,，]+/).filter(Boolean).slice(0, 6);
-    let tagBottom = 660;
+    ctx.fillStyle = '#eef4ff'; ctx.fillText(name, cx, yName);
+    if (p.nickname) { ctx.fillStyle = '#8b94a8'; ctx.font = '24px sans-serif'; ctx.fillText('@' + String(p.nickname), cx, yNick); }
+    const roleLine = String(p.grade || '') + (p.grade ? ' · ' : '') + (roleList(p.role).join(' / ') || '未标注方向');
+    let rf = 26; ctx.font = rf + 'px sans-serif';
+    while (ctx.measureText(roleLine).width > W - 80 && rf > 18) { rf -= 1; ctx.font = rf + 'px sans-serif'; }
+    ctx.fillStyle = '#7fe9cf'; ctx.fillText(roleLine, cx, yRole);
     if (tags.length) {
-      let y0 = 610, col = 0, x0 = cx - 210;
+      const colW = 210, startX = cx - colW * 3 / 2;
       ctx.font = '22px sans-serif';
-      tags.forEach(t => {
-        const tw = ctx.measureText(t).width + 26;
-        if (col > 0 && x0 + col * 140 + tw > W - 40) { col = 0; y0 += 48; }
-        const bx = x0 + col * 140;
+      tags.forEach((t, i) => {
+        const r = Math.floor(i / 3), ci = i % 3;
+        const tw = ctx.measureText(t).width + 28;
+        const bx = startX + ci * colW + (colW - tw) / 2;
+        const by = 610 + r * 48;
         ctx.fillStyle = 'rgba(70,240,200,.08)'; ctx.strokeStyle = 'rgba(70,240,200,.35)'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.roundRect(bx, y0, tw, 36, 8); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#70f8d8'; ctx.textAlign = 'center'; ctx.fillText(t, bx + tw / 2, y0 + 24);
-        col++;
+        ctx.beginPath(); ctx.roundRect(bx, by, tw, 38, 9); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#70f8d8'; ctx.textAlign = 'center'; ctx.fillText(t, bx + tw / 2, by + 26);
       });
-      tagBottom = y0 + 44;
     }
-    const intro = String(p.intro || '');
-    if (intro) {
+    if (introLines.length) {
       ctx.fillStyle = '#aab4cc'; ctx.font = '24px sans-serif'; ctx.textAlign = 'left';
-      const lines = [], lw = W - 140, mw = 5;
-      let cur = '';
-      for (const ch of intro) {
-        const t = cur + ch;
-        if (ctx.measureText(t).width > lw) { lines.push(cur); cur = ch; if (lines.length >= mw) break; }
-        else cur = t;
-      }
-      if (lines.length < mw && cur) lines.push(cur);
-      if (lines.length > mw) { lines.length = mw; lines[mw - 1] = lines[mw - 1].replace(/.{2}$/, '…'); }
-      let iy = tagBottom;
-      lines.forEach(l => { ctx.fillText(l, 70, iy); iy += 36; });
+      introLines.forEach((l, i) => ctx.fillText(l, 70, yIntro + i * 38));
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 34px monospace';
@@ -1341,10 +1340,26 @@ function drawShareCard(p, noAvatar) {
     ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
     ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 104);
   };
+  const drawAvatar = (img) => {
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cyAv, R, 0, Math.PI * 2);
+    ctx.fillStyle = '#141a2e'; ctx.fill();
+    ctx.strokeStyle = '#46f0c8'; ctx.lineWidth = 6; ctx.stroke(); ctx.clip();
+    if (img) {
+      const iw = img.width, ih = img.height, ar = iw / ih;
+      let dw = R * 2, dh = R * 2;
+      if (ar > 1) dh = dw / ar; else dw = dh * ar;
+      ctx.drawImage(img, cx - dw / 2, cyAv - dh / 2, dw, dh);
+    } else {
+      ctx.font = 'bold 88px sans-serif'; ctx.fillStyle = '#70f8d8';
+      ctx.fillText(String(p.name || '?').charAt(0), cx, cyAv + 30);
+    }
+    ctx.restore();
+    drawRest();
+  };
   if (!noAvatar && p.avatar) {
-    if (String(p.avatar).startsWith('data:')) loadImg(p.avatar, false).then(finish).catch(() => finish(null));
-    else loadImgDataUrl(p.avatar).then(u => loadImg(u, false)).then(finish).catch(() => finish(null));
-  } else finish(null);
+    if (String(p.avatar).startsWith('data:')) loadImg(p.avatar, false).then(drawAvatar).catch(() => drawAvatar(null));
+    else loadImgDataUrl(p.avatar).then(u => loadImg(u, false)).then(drawAvatar).catch(() => drawAvatar(null));
+  } else drawAvatar(null);
 }
 function saveShareCard() {
   const c = document.getElementById('shareCanvas'); if (!c) return;
