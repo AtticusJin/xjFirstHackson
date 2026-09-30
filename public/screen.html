@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XJHACK · 现场大屏</title>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070B14;--panel:#0D1524;--card:#101A2E;--line:#1D2A44;
+  --text:#E8EEFF;--text-2:#9AA8C7;--text-3:#5C6B8F;
+  --cyan:#46F0C8;--violet:#8B7CFF;--amber:#FFB454;--pink:#FF5C8A;--green:#4ADE9B;
+  --mono:'JetBrains Mono',monospace;--disp:'ZCOOL QingKe HuangYou',sans-serif;--body:'Noto Sans SC',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden;height:100vh}
+.scr-top{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:18px 34px;background:linear-gradient(180deg,rgba(7,11,20,.95),transparent)}
+.scr-top .brand{font-family:var(--disp);font-size:30px;letter-spacing:2px}
+.scr-top .brand .grad{background:linear-gradient(90deg,var(--cyan),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.scr-top .clock{font-family:var(--mono);font-size:20px;color:var(--text-2)}
+.stage{height:100vh;padding:110px 40px 90px}
+.page{position:absolute;inset:110px 40px 90px;display:none;flex-direction:column;gap:26px}
+.page.on{display:flex;animation:fade .6s ease}
+@keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.page h1{font-family:var(--disp);font-size:56px;letter-spacing:2px}
+.page h1 .n{color:var(--cyan);font-family:var(--mono)}
+.page h2{font-family:var(--mono);font-size:18px;color:var(--text-3);letter-spacing:3px;margin-bottom:18px}
+.big-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.big-st{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:30px;text-align:center}
+.big-st b{font-family:var(--mono);font-size:72px;font-weight:700;line-height:1}
+.big-st span{display:block;margin-top:10px;font-size:16px;color:var(--text-2)}
+.big-st.accent b{color:var(--cyan)}
+.big-st.vio b{color:var(--violet)}
+.big-st.amber b{color:var(--amber)}
+.big-st.pink b{color:var(--pink)}
+.prog{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:26px 28px}
+.prog .p-top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:16px;color:var(--text-2);margin-bottom:14px}
+.prog .bar{height:26px;background:var(--card);border-radius:13px;overflow:hidden;border:1px solid var(--line)}
+.prog .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:13px;transition:width 1s ease;width:0}
+.team-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;overflow-y:auto;padding-right:6px}
+.team-wall::-webkit-scrollbar{width:5px}.team-wall::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.t-wall{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.t-wall .tw-name{font-size:20px;font-weight:700;word-break:break-all}
+.t-wall .tw-badge{font-size:12px;padding:3px 10px;border-radius:7px;font-family:var(--mono);margin-left:8px}
+.t-wall .tw-proj{font-size:14px;color:var(--text-2);margin-top:8px}
+.t-wall .tw-foot{display:flex;align-items:center;gap:10px;margin-top:12px;font-family:var(--mono);font-size:13px;color:var(--text-3)}
+.avatar-stack{display:flex}
+.avatar-stack img,.avatar-stack .ph{width:28px;height:28px;border-radius:50%;border:2px solid var(--panel);object-fit:cover;margin-left:-8px}
+.avatar-stack img:first-child,.avatar-stack .ph:first-child{margin-left:0}
+.avatar-stack .ph{display:flex;align-items:center;justify-content:center;background:var(--card);color:var(--text-3);font-size:11px;font-family:var(--mono)}
+.tl{display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-right:6px}
+.tl::-webkit-scrollbar{width:5px}.tl::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.tl-row{display:grid;grid-template-columns:130px 40px 1fr;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px 22px}
+.tl-time{font-family:var(--mono);font-size:17px;color:var(--text-2);line-height:1.5}
+.tl-mid{position:relative}
+.tl-dot{position:absolute;top:2px;left:14px;width:12px;height:12px;border-radius:50%;background:var(--text-3)}
+.tl-row.done .tl-dot{background:var(--green)}
+.tl-row.now .tl-dot{background:var(--amber);box-shadow:0 0 14px rgba(255,180,84,.8)}
+.tl-line{position:absolute;top:16px;left:19px;bottom:-16px;width:2px;background:var(--line)}
+.tl-title{font-size:19px;font-weight:700}
+.tl-badge{font-size:11px;font-family:var(--mono);padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:2px}
+.tl-desc{font-size:14px;color:var(--text-2);margin-top:4px}
+.ann-wall{display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.ann{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:14px;padding:22px 26px}
+.ann .a-tag{font-family:var(--mono);font-size:12px;color:var(--violet)}
+.ann .a-title{font-size:20px;font-weight:700;margin-left:10px}
+.ann .a-time{float:right;font-family:var(--mono);font-size:12px;color:var(--text-3)}
+.ann .a-body{font-size:15px;color:var(--text-2);margin-top:8px;line-height:1.7}
+.dots{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:60}
+.dots span{width:10px;height:10px;border-radius:50%;background:var(--line);cursor:pointer}
+.dots span.on{background:var(--cyan);box-shadow:0 0 10px rgba(70,240,200,.6)}
+.hint{position:fixed;bottom:28px;right:34px;font-family:var(--mono);font-size:13px;color:var(--text-3);z-index:60}
+</style>
+</head>
+<body>
+<div class="scr-top">
+  <div class="brand">学军中学黑客松 <span class="grad">LIVE</span></div>
+  <div class="clock" id="clock"></div>
+</div>
+<div class="stage">
+  <section class="page on" id="pg-overview">
+    <h1>赛事总览 <span class="n" id="ovTitle"></span></h1>
+    <div class="big-stats" id="bigStats"></div>
+    <div class="prog">
+      <div class="p-top"><span>身份认领进度</span><span id="progTxt"></span></div>
+      <div class="bar"><i id="progBar"></i></div>
+    </div>
+    <h2 id="ovRoles" style="margin-top:8px"></h2>
+  </section>
+  <section class="page" id="pg-teams">
+    <h1>参赛队伍 <span class="n" id="teamCount"></span></h1>
+    <div class="team-wall" id="teamWall"></div>
+  </section>
+  <section class="page" id="pg-timeline">
+    <h1>赛程时间线</h1>
+    <div class="tl" id="tlWall"></div>
+  </section>
+  <section class="page" id="pg-announce">
+    <h1>公告栏</h1>
+    <div class="ann-wall" id="annWall"></div>
+  </section>
+</div>
+<div class="dots" id="dots"></div>
+<div class="hint" id="liveHint"></div>
+
+<script>
+const TS = {
+  recruiting:{label:'招募中',color:'#46F0C8'},formed:{label:'已组队',color:'#8B7CFF'},developing:{label:'开发中',color:'#FFB454'},
+  submitted:{label:'已提交',color:'#4ADE9B'},judging:{label:'评审中',color:'#FF5C8A'},finished:{label:'已结束',color:'#5C6B8F'}
+};
+const ROLE_COLOR = {'开发':'#46F0C8','设计':'#8B7CFF','产品':'#FFB454','硬件':'#FF5C8A','运营':'#4ADE9B','教育':'#FFB454','AI':'#FF5C8A','其他':'#9AA8C7'};
+let DATA = null, page = 0, TOTAL = 0;
+
+async function load() {
+  try {
+    const [p, t, s, a, pool] = await Promise.all([
+      fetch('/api/players').then(r => r.json()),
+      fetch('/api/teams').then(r => r.json()),
+      fetch('/api/schedules').then(r => r.json()),
+      fetch('/api/announcements').then(r => r.json()),
+      fetch('/api/pool').then(r => r.json())
+    ]);
+    DATA = { players: p.players || [], teams: (t.teams || []).filter(x => x.status !== 'disbanded'), schedules: s.schedules || [], announcements: a.announcements || [], waiting: pool.waiting || 0 };
+    TOTAL = DATA.players.length;
+    render();
+  } catch (e) { document.getElementById('liveHint').textContent = '数据加载失败，稍后自动重试'; }
+}
+
+function render() {
+  const claimed = DATA.players.filter(x => x.status === 'claimed').length;
+  // 总览
+  document.getElementById('ovTitle').textContent = `· ${TOTAL} 人报名`;
+  document.getElementById('bigStats').innerHTML = `
+    <div class="big-st accent"><b>${claimed}</b><span>已认领身份</span></div>
+    <div class="big-st vio"><b>${DATA.teams.length}</b><span>参赛队伍</span></div>
+    <div class="big-st amber"><b>${DATA.waiting}</b><span>等待池待匹配</span></div>
+    <div class="big-st pink"><b>${DATA.schedules.filter(x => x.status === 'now').length}</b><span>进行中节点</span></div>`;
+  const pct = TOTAL ? Math.round(claimed / TOTAL * 100) : 0;
+  document.getElementById('progBar').style.width = pct + '%';
+  document.getElementById('progTxt').textContent = `${claimed} / ${TOTAL} · ${pct}%`;
+  const roles = {};
+  DATA.players.forEach(p => { if (p.role) roles[p.role] = (roles[p.role] || 0) + 1; });
+  document.getElementById('ovRoles').textContent = Object.entries(roles).sort((a, b) => b[1] - a[1]).map(([r, n]) => `${r} ${n}`).join('　·　');
+  // 队伍
+  document.getElementById('teamCount').textContent = `· ${DATA.teams.length} 支`;
+  document.getElementById('teamWall').innerHTML = DATA.teams.length ? DATA.teams.map(t => {
+    const s = TS[t.project_status] || TS.recruiting;
+    const avs = (t.members || []).slice(0, 6).map(m => m.avatar ? `<img src="${m.avatar}" alt="">` : '<span class="ph">?</span>').join('');
+    return `<div class="t-wall">
+      <div><span class="tw-name">${esc(t.name)}</span><span class="tw-badge" style="color:${s.color};border:1px solid ${s.color}55;background:${s.color}14">${s.label}</span></div>
+      ${t.project_name ? `<div class="tw-proj">项目：${esc(t.project_name)}${t.project_desc ? ' — ' + esc(t.project_desc) : ''}</div>` : ''}
+      <div class="tw-foot"><div class="avatar-stack">${avs}</div><span>${t.member_count} 人 · 队长 ${esc(t.leader?.name || '—')}</span></div>
+    </div>`;
+  }).join('') : '<div style="color:var(--text-3);font-size:20px">还没有队伍，等待第一支队伍出现…</div>';
+  // 赛程
+  const statusTxt = { done: 'DONE', now: 'NOW', todo: 'TODO' };
+  document.getElementById('tlWall').innerHTML = DATA.schedules.map(s => `
+    <div class="tl-row ${esc(s.status)}">
+      <div class="tl-time">${esc(s.day)}<br>${esc(s.time)}</div>
+      <div class="tl-mid"><span class="tl-dot"></span><span class="tl-line"></span></div>
+      <div><div class="tl-title">${esc(s.title)} <span class="tl-badge" style="color:${s.status === 'now' ? 'var(--amber)' : s.status === 'done' ? 'var(--green)' : 'var(--text-3)'};border:1px solid currentColor33">${statusTxt[s.status] || 'TODO'}</span></div>
+      <div class="tl-desc">${esc(s.desc || '')}</div></div>
+    </div>`).join('') || '<div style="color:var(--text-3);font-size:20px">赛程尚未发布</div>';
+  // 公告
+  document.getElementById('annWall').innerHTML = DATA.announcements.map(a => `
+    <div class="ann"><div class="a-tag">${esc(a.tag)}</div><span class="a-title">${esc(a.title)}</span><span class="a-time">${esc(a.time)}</span><div class="a-body">${esc(a.body)}</div></div>`).join('') || '<div style="color:var(--text-3);font-size:20px">暂无公告</div>';
+  document.getElementById('liveHint').textContent = `${new Date().toLocaleTimeString('zh-CN', { hour12: false })} 自动刷新 · 15s 轮播`;
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* 轮播 */
+const PAGES = ['pg-overview', 'pg-teams', 'pg-timeline', 'pg-announce'];
+function initDots() {
+  document.getElementById('dots').innerHTML = PAGES.map((_, i) => `<span data-i="${i}" ${i === 0 ? 'class="on"' : ''} onclick="go(${i})"></span>`).join('');
+}
+function go(i) {
+  page = (i + PAGES.length) % PAGES.length;
+  PAGES.forEach((p, k) => document.getElementById(p).classList.toggle('on', k === page));
+  document.querySelectorAll('#dots span').forEach((s, k) => s.classList.toggle('on', k === page));
+}
+function tick() {
+  const el = document.getElementById('clock');
+  const d = new Date();
+  el.textContent = `${d.getMonth() + 1}.${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+}
+const INIT_PAGE = parseInt(new URLSearchParams(location.search).get("page") || "0", 10);
+initDots();
+go(INIT_PAGE);
+load();
+setInterval(load, 60000);
+setInterval(() => go(page + 1), 15000);
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>

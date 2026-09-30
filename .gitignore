@@ -1,0 +1,25 @@
+# ===== 环境与密钥（绝不提交） =====
+.env
+.env.*
+!.env.example
+deploy/.env.production.example
+
+# ===== 数据与隐私（真实选手信息，绝不提交） =====
+data/
+*.db
+*.db-*
+*.db-shm
+*.db-wal
+*.bak-*
+
+# ===== 依赖 =====
+node_modules/
+
+# ===== 部署产物 =====
+*.zip
+*.tar.gz
+
+# ===== 系统与日志 =====
+.DS_Store
+*.log
+npm-debug.log*

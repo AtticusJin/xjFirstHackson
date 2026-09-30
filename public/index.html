@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>学军中学黑客松 · XJHACK</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap">
+<style>
+:root{
+  --bg:#070B14; --panel:#0D1424; --card:#111A30; --line:#1E2A47; --line-soft:rgba(30,42,71,.6);
+  --cyan:#46F0C8; --amber:#FFB454; --violet:#8B7CFF; --pink:#FF5C8A; --green:#4ADE9B; --red:#FF4D4D;
+  --text:#E8EEFF; --text-2:#9AA8C7; --text-3:#5C6B8F;
+  --display:'ZCOOL QingKe HuangYou',sans-serif; --mono:'JetBrains Mono',monospace; --body:'Noto Sans SC',sans-serif;
+  --tab-h:58px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding-bottom:calc(var(--tab-h) + env(safe-area-inset-bottom) + 24px);overflow-x:hidden}
+.wrap{max-width:1060px;margin:0 auto;padding:14px 14px 30px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 0 12px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:20px;letter-spacing:1px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet) 60%,var(--pink));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:800;color:#04120E}
+.brand .grad{background:linear-gradient(100deg,var(--cyan) 10%,var(--violet) 60%,var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:12px;max-width:100%}
+.user-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex:none}
+.user-chip b{font-family:var(--mono);color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.user-chip button{background:var(--card);border:1px solid var(--line);color:var(--text-2);font-size:11px;padding:5px 9px;border-radius:7px;cursor:pointer;font-family:var(--mono);min-height:26px}
+.user-chip button:hover{border-color:var(--pink);color:var(--pink)}
+
+/* hero */
+.hero{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:16px}
+.hero::before{content:"";position:absolute;top:-70px;right:-50px;width:250px;height:250px;background:radial-gradient(circle,rgba(139,124,255,.16),transparent 70%);pointer-events:none}
+.hero .tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--amber);border:1px solid rgba(255,180,84,.35);background:rgba(255,180,84,.07);padding:3px 10px;border-radius:20px;letter-spacing:1px}
+.hero h1{font-family:var(--display);font-size:26px;font-weight:400;margin-top:10px;letter-spacing:1px}
+.hero h1 .grad{background:linear-gradient(100deg,var(--cyan),var(--violet) 60%,var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--text-2);font-size:13px;margin-top:8px;line-height:1.8;max-width:640px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center}
+.st b{font-family:var(--mono);font-size:20px;color:var(--cyan);display:block}
+.st span{font-size:10px;color:var(--text-3)}
+.hero-cta{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+
+/* 区块标题 */
+.section-title{display:flex;align-items:center;gap:10px;margin:22px 0 12px;font-family:var(--display);font-size:17px;letter-spacing:.5px}
+.section-title .n{font-family:var(--mono);font-size:10px;color:var(--text-3);border:1px solid var(--line);padding:2px 8px;border-radius:20px}
+.section-title .act{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--cyan);cursor:pointer;background:none;border:1px solid rgba(70,240,200,.3);padding:5px 11px;border-radius:8px}
+.section-title .act:active{background:rgba(70,240,200,.1)}
+
+/* 认领网格 */
+.search-box{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 13px;margin-bottom:12px}
+.search-box .s-ico{font-size:13px;color:var(--text-3);flex:none}
+.search-box input{flex:1;background:none;border:none;color:var(--text);font-size:13px;outline:none;font-family:var(--body);min-width:0}
+.search-box input::placeholder{color:var(--text-3)}
+.search-box .s-clear{background:none;border:none;color:var(--text-3);font-size:13px;cursor:pointer;padding:2px 4px;display:none}
+.search-box .s-clear.show{display:block}
+.search-box:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(70,240,200,.1)}
+.search-hit{margin:0 0 10px;font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.search-hit b{color:var(--amber)}
+
+/* 骨架屏 */
+.skel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(139,124,255,.06) 50%,transparent 70%);animation:shimmer 1.4s infinite}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.skel .s1{height:12px;width:40%;background:var(--line);border-radius:4px}
+.skel .s2{height:12px;width:70%;background:var(--line);border-radius:4px;margin-top:10px}
+.skel .s3{height:9px;width:90%;background:var(--line);border-radius:4px;margin-top:14px}
+.skel .s4{height:9px;width:55%;background:var(--line);border-radius:4px;margin-top:8px}
+
+/* 底部导航角标 */
+.badge-num{position:absolute;top:5px;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--pink);color:#fff;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;font-family:var(--mono);box-shadow:0 0 8px rgba(255,92,138,.6)}
+.badge-num.show{display:flex}
+@media(min-width:861px){.badge-num{right:auto;left:calc(50% + 6px);top:6px}}
+
+/* 等待池 */
+.pool-card{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;background:var(--card)}
+.pool-card .pc-txt{flex:1;min-width:0}
+.pool-card .pc-txt b{font-size:13px}
+.pool-card .pc-txt p{font-size:10px;color:var(--text-2);margin-top:2px}
+.pool-card .btn{flex:none}
+.pool-card.in{border-style:solid;border-color:rgba(70,240,200,.4);background:linear-gradient(135deg,rgba(70,240,200,.07),transparent)}
+
+/* 推荐区 */
+.rec-box{border:1px solid rgba(139,124,255,.35);background:linear-gradient(135deg,rgba(139,124,255,.08),rgba(70,240,200,.05));border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.rec-box .r-top{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--violet);letter-spacing:.5px}
+.rec-box .r-top .spark{animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.rec-box .r-teams{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.rec-card{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.rec-card:active{border-color:var(--violet)}
+.rec-card .rc-name{font-size:13px;font-weight:800;word-break:break-all;min-width:0}
+.rec-card .rc-needs{font-size:10px;color:var(--text-2);margin-top:2px;font-family:var(--mono)}
+.rec-card .rc-go{margin-left:auto;font-size:10px;color:var(--violet);font-family:var(--mono);flex:none}
+
+/* 下拉刷新 */
+.pull-hint{position:sticky;top:0;z-index:40;text-align:center;font-family:var(--mono);font-size:11px;color:var(--cyan);background:rgba(7,11,20,.9);padding:6px 0;border-bottom:1px solid var(--line);display:none}
+.pull-hint.show{display:block}
+
+/* 首次引导 */
+.guide-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.guide-note{margin-top:14px;font-size:11px;color:var(--text-3);font-family:var(--mono);text-align:center}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.player-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px;cursor:pointer;transition:border-color .15s,transform .15s;position:relative;min-width:0}
+.player-card:active{border-color:var(--cyan);transform:scale(.985)}
+.player-card.claimed{opacity:.62}
+.player-card.claimed:active{opacity:1}
+.pc-role{font-family:var(--mono);font-size:9px;color:var(--amber);border:1px solid rgba(255,180,84,.3);padding:2px 7px;border-radius:5px;background:rgba(255,180,84,.07);flex:none;align-self:flex-start;margin-left:8px}
+.pc-roles{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;align-items:center}
+.pc-roles .pc-role{margin-left:0}
+.d-roles{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;align-items:center}
+.d-roles .d-role{margin-left:0}
+.role-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.role-chip{font-family:var(--mono);font-size:12px;color:var(--text-2);border:1px solid var(--line);padding:5px 14px;border-radius:8px;background:rgba(255,255,255,.02);cursor:pointer;transition:all .15s}
+.role-chip.on{color:var(--cyan);border-color:var(--cyan);background:rgba(70,240,200,.1)}
+.pc-top{display:flex;align-items:center;gap:10px}
+.pc-id{flex:1;min-width:0}
+.pc-avatar{width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--line);flex:none}
+.pc-name{font-size:14px;font-weight:700;word-break:break-all}
+.pc-handle{font-family:var(--mono);font-size:10px;color:var(--text-3);margin-top:2px}
+.pc-intro{font-size:11px;color:var(--text-2);margin-top:8px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:0}
+.pc-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.pc-tags span{font-size:9px;color:var(--cyan);background:rgba(70,240,200,.08);border:1px solid rgba(70,240,200,.22);padding:2px 7px;border-radius:5px;font-family:var(--mono)}
+.pc-status{font-size:10px;color:var(--text-3);margin-top:10px;font-family:var(--mono)}
+.pc-status.claimed-txt{color:var(--text-3)}
+/* 详情弹窗 */
+.d-card{display:flex;flex-direction:column;gap:14px}
+.d-top{display:flex;align-items:center;gap:14px}
+.d-top img{width:64px;height:64px;border-radius:14px;object-fit:cover;border:1px solid var(--line);flex:none}
+.d-top .d-id{flex:1;min-width:0}
+.d-top .d-id b{font-size:19px;word-break:break-all}
+.d-top .d-id .d-nick{font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:3px;display:block}
+.d-role{font-family:var(--mono);font-size:10px;color:var(--amber);border:1px solid rgba(255,180,84,.35);padding:3px 9px;border-radius:6px;background:rgba(255,180,84,.08);flex:none}
+.d-meta{font-size:11px;color:var(--text-2);display:flex;flex-wrap:wrap;gap:6px}
+.d-meta .d-tag{font-family:var(--mono);font-size:10px;color:var(--cyan);background:rgba(70,240,200,.08);border:1px solid rgba(70,240,200,.22);padding:2px 8px;border-radius:5px}
+.d-intro{font-size:12px;color:var(--text);line-height:1.85;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;white-space:pre-wrap;word-break:break-word}
+.d-intro a.lk,.d-link a.lk{color:var(--cyan);text-decoration:underline;word-break:break-all}
+.d-links{display:flex;flex-direction:column;gap:8px}
+.d-link{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:0}
+.d-link a{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--cyan);word-break:break-all}
+.d-link button{flex:none;font-size:10px;padding:5px 10px}
+.d-status{font-size:11px;color:var(--text-2);line-height:1.7;padding:10px 12px;border:1px dashed var(--line);border-radius:9px}
+.d-status b{color:var(--amber)}
+.privacy-note{font-size:11px;color:var(--text-3);line-height:1.7;margin:14px 0 0;padding:11px 13px;border:1px dashed var(--line);border-radius:8px}
+
+/* 赛程时间轴 */
+.timeline{display:grid;grid-template-columns:64px 24px minmax(0,1fr);gap:0;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:8px 14px 12px}
+.tl-row{display:contents}
+.tl-time{font-family:var(--mono);font-size:10px;color:var(--text-3);padding-top:20px;text-align:right}
+.tl-mid{display:flex;justify-content:center;position:relative;padding-top:12px}
+.tl-dot{width:13px;height:13px;border-radius:50%;background:var(--card);border:2px solid var(--line);z-index:2;flex:none}
+.tl-row.done .tl-dot{background:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(74,222,155,.5)}
+.tl-row.now .tl-dot{background:var(--amber);border-color:var(--amber);box-shadow:0 0 10px rgba(255,180,84,.7);animation:pulse 1.6s infinite}
+.tl-line{position:absolute;top:25px;bottom:-14px;width:2px;background:var(--line);left:50%;transform:translateX(-50%)}
+.tl-row:last-child .tl-line{display:none}
+.tl-content{padding:12px 0 12px 4px;border-bottom:1px solid var(--line-soft)}
+.tl-row:last-child .tl-content{border-bottom:none}
+.tl-title{font-size:12px;font-weight:700}
+.tl-row.now .tl-title{color:var(--amber)}
+.tl-desc{font-size:10px;color:var(--text-2);margin-top:3px;line-height:1.6}
+.tl-badge{display:inline-block;font-family:var(--mono);font-size:8px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:1px}
+.tl-row.done .tl-badge{background:rgba(74,222,155,.1);color:var(--green);border:1px solid rgba(74,222,155,.3)}
+.tl-row.now .tl-badge{background:rgba(255,180,84,.12);color:var(--amber);border:1px solid rgba(255,180,84,.4)}
+.tl-row.todo .tl-badge{background:var(--card);color:var(--text-3);border:1px solid var(--line)}
+@keyframes pulse{0%,100%{box-shadow:0 0 6px rgba(255,180,84,.5)}50%{box-shadow:0 0 16px rgba(255,180,84,.9)}}
+
+/* 公告 */
+.announce{display:flex;flex-direction:column;gap:10px}
+.ann{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.ann:active{border-color:var(--cyan)}
+.a-more{font-size:10px;color:var(--violet);font-family:var(--mono);margin-top:8px}
+.ann .a-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ann .a-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(139,124,255,.1);color:var(--violet);border:1px solid rgba(139,124,255,.3);flex:none}
+.ann .a-title{font-size:12px;font-weight:700}
+.ann .a-body{font-size:11px;color:var(--text-2);margin-top:5px;line-height:1.7}
+.ann .a-time{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-left:auto;white-space:nowrap}
+
+/* 队伍卡片 */
+.team-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.team-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;position:relative;transition:border-color .15s;min-width:0}
+.team-card:active{border-color:var(--cyan)}
+.team-card .t-top{display:flex;align-items:flex-start;gap:10px}
+.team-card .t-name{font-size:15px;font-weight:800;word-break:break-all;flex:1}
+.team-card .t-slogan{font-size:11px;color:var(--text-2);margin-top:3px;line-height:1.6}
+.badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:6px;flex:none;white-space:nowrap}
+.t-needs{font-size:11px;color:var(--text-2);margin-top:9px;line-height:1.6}
+.t-needs b{color:var(--amber);font-weight:700}
+.t-foot{display:flex;align-items:center;gap:10px;margin-top:11px}
+.avatar-stack{display:flex}
+.avatar-stack img,.avatar-stack .ph{width:26px;height:26px;border-radius:50%;border:2px solid var(--card);object-fit:cover;margin-left:-9px}
+.avatar-stack img:first-child,.avatar-stack .ph:first-child{margin-left:0}
+.avatar-stack .ph{background:var(--panel);border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--text-3)}
+.t-count{font-family:var(--mono);font-size:10px;color:var(--text-3)}
+.t-proj{margin-top:9px;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:11px;color:var(--text-2)}
+.t-proj b{color:var(--cyan)}
+.progress-bar{height:5px;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-top:10px}
+.progress-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:20px;transition:width .4s}
+.empty{text-align:center;color:var(--text-3);padding:34px 0;font-size:12px;font-family:var(--mono);line-height:2}
+
+/* 我的视图 */
+.me-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.me-card img{width:60px;height:60px;border-radius:14px;object-fit:cover;border:1px solid var(--line)}
+.me-card .who{flex:1;min-width:0}
+.me-card .who b{font-size:18px}
+.me-card .who .role{font-family:var(--mono);font-size:11px;color:var(--amber);margin-top:4px;display:block}
+.me-card .who p{font-size:11px;color:var(--text-2);margin-top:6px;line-height:1.7}
+.me-card .who .tag-free{display:inline-block;font-family:var(--mono);font-size:9px;color:var(--cyan);border:1px solid rgba(70,240,200,.3);padding:1px 7px;border-radius:20px;margin-top:6px}
+.me-section{margin-top:18px}
+.me-list{display:flex;flex-direction:column;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--mono);transition:filter .15s;min-height:44px}
+.btn.primary{background:var(--cyan);color:#04120E}
+.btn.primary:hover{filter:brightness(1.12)}
+.btn.ghost{background:var(--card);color:var(--text-2);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--text-3)}
+.btn.danger{background:rgba(255,92,138,.1);color:var(--pink);border:1px solid rgba(255,92,138,.35)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{min-height:34px;padding:6px 12px;font-size:11px;border-radius:8px}
+.btn-block{width:100%}
+.btn-row{display:flex;gap:10px;margin-top:16px}
+.demo-line{display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+
+
+/* 同意勾选 */
+.consent{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--text-2);line-height:1.5;margin:10px 0 2px;cursor:pointer}
+.consent input{margin-top:2px;accent-color:var(--cyan)}
+/* 首页选手卡 */
+.me-hero{margin:14px 0 4px}
+.me-hero-card{background:linear-gradient(150deg,rgba(70,240,200,.07),rgba(139,124,255,.06));border:1px solid rgba(70,240,200,.22);border-radius:14px;padding:14px;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
+.mh-main{display:flex;gap:11px;align-items:center}
+.mh-main img,.mh-main .ph{width:52px;height:52px;border-radius:13px;object-fit:cover;flex:none;background:linear-gradient(135deg,rgba(139,124,255,.3),rgba(70,240,200,.25));display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff}
+.mh-info{flex:1;min-width:0}
+.mh-name{font-size:17px;font-weight:800;letter-spacing:.3px}
+.mh-meta{font-size:11px;color:var(--text-2);margin-top:2px}
+.mh-status{font-size:10px;color:var(--cyan);margin-top:4px;display:flex;align-items:center;gap:5px}
+.mh-status .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.mh-intro{font-size:12px;color:var(--text-2);line-height:1.6;margin-top:10px}
+.mh-intro.dim{color:var(--text-3)}
+.mh-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mh-actions{display:flex;gap:8px;margin-top:12px}
+.mh-actions .btn{flex:1}
+/* 标签编辑器 */
+.tag-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-height:44px}
+.tag-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#34f5a0;background:rgba(52,245,160,.08);border:1px solid rgba(52,245,160,.35);padding:4px 10px;border-radius:7px;font-family:var(--mono)}
+.tag-chip i{font-style:normal;color:rgba(52,245,160,.55);cursor:pointer;padding:0 2px;font-size:12px}
+.tag-chip i:active{color:#fff}
+.tag-add{flex:none;width:30px;height:30px;border-radius:8px;border:1px dashed var(--cyan);background:rgba(70,240,200,.06);color:var(--cyan);font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tag-add:active{border-color:#fff;color:#fff}
+.tag-input-line{display:flex;gap:8px;margin-top:8px}
+.tag-input-line input{flex:1;min-width:0}
+.tag-tpl{font-size:10px;color:var(--text-3);margin-top:9px;line-height:1.9}
+.tag-tpl span{color:var(--cyan);cursor:pointer;border:1px solid rgba(70,240,200,.22);background:rgba(70,240,200,.06);padding:2px 9px;border-radius:6px;margin-right:6px;font-family:var(--mono)}
+.tag-tpl span:active{border-color:var(--cyan)}
+/* 创建小队 */
+.btn.block{width:100%;justify-content:center}
+.hint{font-size:11px;color:var(--text-3);text-align:center;margin-top:8px}
+.dir-chips{display:flex;flex-wrap:wrap;gap:8px}
+.dir-chip{font-size:11px;color:var(--text-2);border:1px solid var(--line);padding:5px 12px;border-radius:8px;cursor:pointer;background:var(--card);transition:all .12s}
+.dir-chip.on{color:var(--cyan);border-color:var(--cyan);background:rgba(70,240,200,.08)}
+.dir-chip.tpl.on{color:var(--violet);border-color:var(--violet);background:rgba(139,124,255,.1)}
+.mine-tag{font-size:9px;color:var(--cyan);border:1px solid var(--cyan);padding:1px 6px;border-radius:5px;font-family:var(--mono)}
+.team-card.mine{border-color:rgba(70,240,200,.45)}
+
+.demo-line span{font-size:10px;color:var(--text-3);text-align:center}
+
+/* 模态 */
+.modal-mask{position:fixed;inset:0;background:rgba(4,7,15,.85);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;overflow-y:auto}
+.modal-mask.open{display:flex}
+.modal{width:min(520px,100%);max-width:calc(100vw - 32px);max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.modal h3{font-family:var(--display);font-size:19px;font-weight:400;letter-spacing:.5px}
+.modal .sub{font-size:12px;color:var(--text-2);margin-top:8px;line-height:1.8}
+.modal-close{position:sticky;top:0;float:right;background:none;border:none;color:var(--text-3);font-size:22px;cursor:pointer;line-height:1;margin:-4px -4px 0 0}
+.field{margin-top:14px}
+.field label{font-family:var(--mono);font-size:10px;color:var(--text-3);display:block;margin-bottom:6px;letter-spacing:.3px}
+.field input,.field textarea,.field select{width:100%;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:11px 13px;font-size:13px;outline:none;font-family:var(--body)}
+.field textarea{min-height:76px;resize:vertical;line-height:1.6}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(70,240,200,.1)}
+.tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:16px}
+.tabs button{flex:1;background:none;border:none;color:var(--text-3);font-family:var(--mono);font-size:12px;font-weight:700;padding:10px;border-radius:7px;cursor:pointer}
+.tabs button.on{background:var(--cyan);color:#04120E}
+.step-dot{display:flex;gap:8px;margin-top:14px}
+.step-dot span{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.step-dot span.on{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.err-msg{font-family:var(--mono);font-size:12px;color:var(--pink);margin-top:10px;min-height:18px;display:none}
+.err-msg.show{display:block;animation:shake .35s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.dev-code{margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--amber);background:rgba(255,180,84,.08);border:1px dashed rgba(255,180,84,.4);padding:8px 12px;border-radius:8px;line-height:1.8}
+.dev-code b{font-size:16px;letter-spacing:4px}
+
+/* 状态选择条（队长推进状态） */
+.status-strip{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.status-strip .st-item{font-family:var(--mono);font-size:10px;padding:6px 11px;border-radius:8px;border:1px solid var(--line);color:var(--text-3);background:var(--card);cursor:pointer}
+.status-strip .st-item.on{border-color:transparent;color:#04120E;font-weight:800}
+
+/* toast */
+.toast-wrap{position:fixed;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom) + 14px);left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:92vw}
+.toast{background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:13px;padding:10px 16px;border-radius:10px;animation:slideUp .2s ease;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:92vw;line-height:1.6}
+.toast b{color:var(--cyan)}
+.toast.warn{border-color:rgba(255,92,138,.5)}
+.toast.warn b{color:var(--pink)}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* 底部导航 */
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:90;background:rgba(13,20,36,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--text-3);font-family:var(--mono);font-size:10px;padding:9px 0 7px;cursor:pointer;min-height:var(--tab-h)}
+.bottom-nav button .ico{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:7px;font-size:13px}
+.bottom-nav button.on{color:var(--cyan)}
+.bottom-nav button.on .ico{background:rgba(70,240,200,.12);box-shadow:0 0 12px rgba(70,240,200,.25) inset}
+footer{margin-top:28px;text-align:center;font-family:var(--mono);font-size:9px;color:var(--text-3);line-height:1.9;padding-bottom:8px}
+
+@media(min-width:861px){
+  .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bottom-nav{top:0;bottom:auto;border-top:none;border-bottom:1px solid var(--line);max-width:1060px;left:50%;transform:translateX(-50%);border-radius:0 0 12px 12px}
+  .bottom-nav button{flex-direction:row;gap:7px;font-size:12px;min-height:48px}
+  body{padding-bottom:30px}
+  .hero h1{font-size:32px}
+  .stats{grid-template-columns:repeat(4,auto);justify-content:start}
+  .st{padding:10px 22px}
+  .toast-wrap{bottom:22px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><span class="logo">XJ</span><span>学军中学<span class="grad">黑客松</span></span></div>
+    <div id="userChip" class="user-chip" style="display:none"></div>
+  </div>
+
+  <!-- ===== 首页 ===== -->
+  <main id="view-home">
+    <div class="hero" id="heroBox">
+      <span class="tag">48H · 回响创造营</span>
+      <h1 id="heroTitle">认领你的<span class="grad">身份</span>，加入 48H</h1>
+      <p id="heroDesc">在认领名单里找到自己 → 确认身份 → 邮箱验证码登录即完成认领。不在名单？一键注册参赛，完善你的资料。</p>
+      <div class="stats" id="stats"></div>
+      <div class="hero-cta" id="heroCta"></div>
+    </div>
+
+    <div id="claimView">
+      <div class="section-title">认领名单 <span class="n" id="claimCount"></span></div>
+      <div class="search-box"><span class="s-ico">⌕</span><input id="playerSearch" placeholder="搜索姓名 / 昵称 / 方向，找到你自己" autocomplete="off"><button class="s-clear" id="searchClear" onclick="clearSearch()">×</button></div>
+      <div class="search-hit" id="searchHit" style="display:none"></div>
+      <div class="grid" id="playerGrid"></div>
+      <p class="privacy-note">资料来自组委会公开报名表，仅用于赛事组队交流。登录后可在「我的」页面自行修改或撤下个人介绍，无需联系管理员。使用本系统即表示你已阅读并同意 <a href="/privacy.html" target="_blank" style="color:var(--cyan);text-decoration:underline">《隐私政策》</a>。</p>
+    </div>
+
+    <div id="homeDash" style="display:none">
+      <div class="me-hero" id="meHero" style="display:none"></div>
+      <div class="section-title">赛程 SCHEDULE</div>
+      <div class="timeline" id="timeline"></div>
+      <div class="section-title">最新公告</div>
+      <div class="announce" id="announceList"></div>
+    </div>
+  </main>
+
+  <!-- ===== 组队广场 ===== -->
+  <main id="view-teams" style="display:none">
+    <div class="section-title">组队广场 <span class="n" id="teamCount"></span></div>
+    <div id="createWrap" style="display:none;margin:14px 0">
+      <button id="btnCreateTeam" class="btn primary block" onclick="openCreateTeam()">＋ 创建小队</button>
+      <div id="inTeamHint" class="hint" style="display:none">你已在小队中，创建已锁定</div>
+    </div>
+    <div id="poolBox"></div>
+    <div class="team-grid" id="teamGrid"></div>
+  </main>
+
+  <!-- ===== 我的 ===== -->
+  <main id="view-me" style="display:none">
+    <div class="section-title">我的 MINE</div>
+    <div id="meBox"></div>
+  </main>
+</div>
+
+<!-- 下拉刷新提示 -->
+<div class="pull-hint" id="pullHint">↓ 下拉刷新</div>
+
+<!-- 底部导航 -->
+<nav class="bottom-nav" id="bottomNav">
+  <button data-tab="home" onclick="showTab('home')"><span class="ico">⌂</span>首页</button>
+  <button data-tab="teams" onclick="showTab('teams')"><span class="ico">◉</span>组队<span class="badge-num" id="badgeTeams">0</span></button>
+  <button data-tab="me" onclick="showTab('me')"><span class="ico">▣</span>我的<span class="badge-num" id="badgeMe">0</span></button>
+</nav>
+
+<div class="modal-mask" id="modal">
+  <div class="modal" id="modalBox"></div>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const API = '/api';
+let TOKEN = localStorage.getItem('xjhack_token') || '';
+let ME = null;
+let players = [], schedules = [], announcements = [], teams = [];
+let claimToken = null, claimPlayer = null, emailInput = '', devCode = '';
+let curTab = 'home';
+
+/* 队伍状态机（与后端一致） */
+const TS = {
+  recruiting: { label: '招募中', color: '#46F0C8', pct: 20 },
+  formed:     { label: '已组队', color: '#8B7CFF', pct: 40 },
+  developing: { label: '开发中', color: '#FFB454', pct: 60 },
+  submitted:  { label: '已提交', color: '#4ADE9B', pct: 80 },
+  judging:    { label: '评审中', color: '#FF5C8A', pct: 90 },
+  finished:   { label: '已结束', color: '#5C6B8F', pct: 100 },
+  disbanded:  { label: '已解散', color: '#FF4D4D', pct: 0 }
+};
+
+/* ===== 基础 ===== */
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  const r = await fetch(API + path, { ...opts, headers });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok && d.msg) throw new Error(d.msg);
+  return d;
+}
+function toast(html, warn = false) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (warn ? ' warn' : '');
+  el.innerHTML = html;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ROLE_COLOR = { '开发':'#46F0C8', '设计':'#8B7CFF', '产品':'#FFB454', '硬件':'#FF5C8A', '运营':'#4ADE9B', '教育':'#FFB454', 'AI':'#FF5C8A', '其他':'#9AA8C7' };
+const AV_STOCK = ['https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/TBJTb2Mzcoa1wixbugXcLYSKn5g','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/QIirbTnqcoPjOwx8ESucKgoZnui','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/NEFabViD5owsKUxFrT1c2yAbnPf','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/W01RbY6wHoabHkx2qwFc5wa7nCh','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/HeoPbEO2oocfMhxanQDcINV1np0','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/UcgobADHOoVJUHxYIhpcl1BZnFg','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/ShoobNfU8ovuWvxhIt2cNVvJnBd','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/AFcbbmEymo7q5fxHkPBcs3gXnTd'];
+
+/* ===== Tab 切换 ===== */
+function showTab(tab) {
+  curTab = tab;
+  document.querySelectorAll('main').forEach(m => m.style.display = 'none');
+  document.getElementById('view-' + tab).style.display = 'block';
+  document.querySelectorAll('#bottomNav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  if (tab === 'teams') loadTeams();
+  if (tab === 'me') renderMe();
+}
+
+/* ===== 数据加载 ===== */
+let q = '';
+function skelGrid(n, col) {
+  return Array.from({ length: n }, () => `<div class="skel"${col ? ` style="grid-column:${col}"` : ''}><div class="s1"></div><div class="s2"></div><div class="s3"></div><div class="s4"></div></div>`).join('');
+}
+async function refresh() {
+  const g = document.getElementById('playerGrid');
+  if (g) g.innerHTML = skelGrid(6);
+  const [p, s, a] = await Promise.all([api('/players'), api('/schedules'), api('/announcements')]);
+  players = p.players; schedules = s.schedules; announcements = a.announcements;
+  renderStats(); renderGrid(); renderTimeline(); renderAnnounce();
+}
+async function loadTeams() {
+  try {
+    document.getElementById('teamGrid').innerHTML = skelGrid(3);
+    const d = await api('/teams');
+    teams = d.teams || [];
+    renderTeams();
+    renderPoolEntry();
+  } catch (e) { toast(e.message, true); document.getElementById('teamGrid').innerHTML = '<div class="empty">加载失败，下拉刷新重试</div>'; }
+}
+async function renderPoolEntry() {
+  const box = document.getElementById('poolBox');
+  box.innerHTML = '';
+  if (!ME || !ME.user.player) return;
+  try {
+    const [pool, mine] = await Promise.all([api('/pool'), api('/teams/mine')]);
+    const inTeam = mine.led.length > 0 || mine.joined.length > 0;
+    if (inTeam) return;
+    if (pool.me) {
+      box.innerHTML = `<div class="pool-card in">
+        <div class="pc-txt"><b>你已在等待池</b><p>当前共 ${pool.waiting} 人待匹配${pool.me.msg ? ' · 备注：' + esc(pool.me.msg) : ''}</p></div>
+        <button class="btn ghost sm" onclick="leavePool()">退出</button></div>`;
+    } else {
+      box.innerHTML = `<div class="pool-card">
+        <div class="pc-txt"><b>组队截止后还没组上队？</b><p>进入等待池，组委会协助随机补位 · 当前 ${pool.waiting} 人在池</p></div>
+        <button class="btn primary sm" onclick="openPoolJoin()">进入等待池</button></div>`;
+    }
+  } catch (e) { /* 入口加载失败不打扰 */ }
+}
+function openPoolJoin() {
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>进入等待池</h3>
+    <p class="sub">组队截止后仍未组队的选手将进入等待池，由组委会协助随机补位。现在进入也可以提前占位。</p>
+    <div class="field"><label>想补充的话（可选）</label><input id="poolMsg" placeholder="例如：需要后端 / 想做个 AI 应用" autocomplete="off"></div>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="joinPool()">进入等待池 →</button></div>`);
+}
+async function joinPool() {
+  try {
+    const msg = document.getElementById('poolMsg')?.value.trim() || '';
+    const d = await api('/pool/join', { method: 'POST', body: JSON.stringify({ msg }) });
+    closeModal(); toast(d.msg); renderPoolEntry();
+  } catch (e) { err(e.message); }
+}
+async function leavePool() {
+  askConfirm('退出等待池', '退出后需要再次点击「进入等待池」才能等待补位。确定退出吗？', '确认退出', 'doLeavePool()');
+}
+async function doLeavePool() {
+  try {
+    const d = await api('/pool/leave', { method: 'POST' });
+    toast(d.msg); renderPoolEntry();
+  } catch (e) { err(e.message); }
+}
+
+/* ===== 首页渲染 ===== */
+function renderStats() {
+  const claimed = players.filter(x => x.status === 'claimed').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="st"><b>${players.length}</b><span>参赛选手</span></div>
+    <div class="st"><b>${claimed}</b><span>已认领</span></div>
+    <div class="st"><b>${teams.length || 0}</b><span>组队</span></div>
+    <div class="st"><b>${new Set(players.flatMap(x => roleList(x.role))).size}</b><span>方向</span></div>`;
+  document.getElementById('claimCount').textContent = `${claimed} / ${players.length} 已认领`;
+}
+function renderGrid() {
+  const g = document.getElementById('playerGrid');
+  if (!players.length) { g.innerHTML = '<div class="empty">暂无选手数据，管理员可通过后台补录或导入飞书 CSV</div>'; return; }
+  const kw = q.trim().toLowerCase();
+  const hit = document.getElementById('searchHit');
+  const clear = document.getElementById('searchClear');
+  const list = kw ? players.filter(p => {
+    const hay = `${p.name} ${p.nickname || ''} ${p.role || ''} ${p.tags || ''}`.toLowerCase();
+    return hay.includes(kw);
+  }) : players;
+  if (kw) {
+    hit.style.display = 'block';
+    hit.innerHTML = `找到 <b>${list.length}</b> 位匹配「<b>${esc(q.trim())}</b>」${list.length ? '，点击卡片认领' : '——不在名单？试试「注册参赛」'}`;
+    if (clear) clear.classList.add('show');
+  } else {
+    hit.style.display = 'none';
+    if (clear) clear.classList.remove('show');
+  }
+  if (!list.length) { g.innerHTML = '<div class="empty">没有找到匹配的选手<br>可能你不在名单里？点右上角「注册参赛」直接创建自由身份</div>'; return; }
+  g.innerHTML = list.map(p => {
+    const claimed = p.status === 'claimed';
+    return `<div class="player-card${claimed ? ' claimed' : ''}" data-id="${p.id}" onclick="openPlayerDetail(${p.id})">
+      <div class="pc-top">
+        ${p.avatar ? `<img class="pc-avatar" src="${esc(p.avatar)}" alt="">` : `<div class="pc-avatar" style="background:var(--card);border:1px solid var(--line)"></div>`}
+        <div class="pc-id">
+          <div class="pc-name">${esc(p.name)}</div>
+          ${p.nickname ? `<div class="pc-handle">@${esc(p.nickname)}</div>` : ''}
+        </div>
+        <div class="pc-roles">${roleList(p.role).map(r => `<span class="pc-role">${esc(r)}</span>`).join('') || '<span class="pc-role">未标注</span>'}</div>
+      </div>
+      <div class="pc-intro">${esc(p.intro || '暂无自我介绍')}</div>
+      ${(p.tags || '').split(/\s+/).filter(Boolean).length ? `<div class="pc-tags">${(p.tags || '').split(/\s+/).filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
+      <div class="pc-status${claimed ? ' claimed-txt' : ''}">${claimed ? '■ 已被认领 · 点击查看' : '□ 点击查看 / 认领'}</div>
+    </div>`;
+  }).join('');
+}
+/* ===== 详情弹窗 ===== */
+function extractUrls(text) {
+  const urls = [];
+  const re = /https?:\/\/[^\s<>"'）)】]+/g;
+  let m; while ((m = re.exec(text))) urls.push(m[0].replace(/[。，、；]+$/, ''));
+  return [...new Set(urls)];
+}
+function linkify(text) {
+  return esc(text).replace(/https?:\/\/[^\s<>"'）)】]+/g, u => {
+    const clean = u.replace(/[。，、；]+$/, '');
+    return `<a class="lk" href="${clean}" target="_blank" rel="noopener noreferrer">${clean}</a>`;
+  });
+}
+async function copyText(t, msg) {
+  try { await navigator.clipboard.writeText(t); toast(msg || '已复制 ✓'); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast(msg || '已复制 ✓'); }
+    catch (_) { toast('复制失败，请长按手动复制', true); }
+    ta.remove();
+  }
+}
+function openPlayerDetail(pid) {
+  const p = players.find(x => x.id === pid);
+  if (!p) return;
+  const claimed = p.status === 'claimed';
+  const urls = extractUrls((p.intro || '') + ' ' + (p.tags || ''));
+  const links = urls.length ? `<div class="d-links">${urls.map(u => `
+    <div class="d-link"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>
+    <button class="btn ghost sm" onclick="copyText(${JSON.stringify(u).replace(/"/g, '&quot;')})">复制</button></div>`).join('')}</div>` : '';
+  const tags = (p.tags || '').split(/\s+/).filter(Boolean);
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="d-card">
+      <div class="d-top">
+        ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : `<div style="width:64px;height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);flex:none"></div>`}
+        <div class="d-id"><b>${esc(p.name)}</b>${p.nickname ? `<span class="d-nick">@${esc(p.nickname)}</span>` : ''}</div>
+        <div class="d-roles">${roleList(p.role).map(r => `<span class="d-role">${esc(r)}</span>`).join('') || '<span class="d-role">未标注</span>'}</div>
+      </div>
+      ${(p.grade || tags.length) ? `<div class="d-meta">${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}${tags.map(t => `<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      <div class="d-intro">${p.intro ? linkify(p.intro) : '暂无自我介绍'}</div>
+      ${links}
+      <div class="d-status">${claimed
+        ? '<b>■ 已被认领</b> — 想认识 TA？认领后选手信息为隐私保护模式，可通过<b>组队广场</b>向 TA 的队伍发起申请。'
+        : '<b>□ 尚未认领</b> — 如果你就是本人，认领后即可编辑自己的资料、参与组队；如非本人也可先查看。'}
+      </div>
+      ${claimed ? '' : `<div class="btn-row"><button class="btn primary" onclick="startClaim(${p.id})">认领身份 →</button></div>`}
+    </div>`);
+}
+function onSearch() {
+  const inp = document.getElementById('playerSearch');
+  q = inp ? inp.value : '';
+  renderGrid();
+}
+function clearSearch() {
+  const inp = document.getElementById('playerSearch');
+  if (inp) inp.value = '';
+  q = '';
+  renderGrid();
+  if (inp) inp.focus();
+}
+function renderTimeline() {
+  const statusTxt = { done: 'DONE', now: 'NOW', todo: 'TODO' };
+  document.getElementById('timeline').innerHTML = schedules.map(s => `
+    <div class="tl-row ${esc(s.status)}">
+      <div class="tl-time">${esc(s.day)}<br>${esc(s.time)}</div>
+      <div class="tl-mid"><span class="tl-dot"></span><span class="tl-line"></span></div>
+      <div class="tl-content">
+        <div class="tl-title">${esc(s.title)} <span class="tl-badge">${statusTxt[s.status] || 'TODO'}</span></div>
+        <div class="tl-desc">${esc(s.desc || '')}</div>
+      </div>
+    </div>`).join('') || '<div class="empty">赛程尚未发布</div>';
+}
+function renderAnnounce() {
+  document.getElementById('announceList').innerHTML = announcements.map(a => `
+    <div class="ann" onclick="openAnnounce(${a.id})">
+      <div class="a-top"><span class="a-tag">${esc(a.tag)}</span><span class="a-title">${esc(a.title)}</span><span class="a-time">${esc(a.time)}</span></div>
+      <div class="a-body">${esc(a.body)}</div>
+      <div class="a-more">查看全文 →</div>
+    </div>`).join('') || '<div class="empty">暂无公告</div>';
+}
+function openAnnounce(id) {
+  const a = announcements.find(x => x.id === id);
+  if (!a) return;
+  const urls = extractUrls(a.body || '');
+  const links = urls.length ? `<div class="d-links">${urls.map(u => `
+    <div class="d-link"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>
+    <button class="btn ghost sm" onclick="copyText(${JSON.stringify(u).replace(/"/g, '&quot;')})">复制</button></div>`).join('')}</div>` : '';
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="a-tag">${esc(a.tag)}</span>${esc(a.title)}</h3>
+    <p class="sub" style="margin-top:6px">${esc(a.time)}</p>
+    <div class="d-intro" style="margin-top:12px">${a.body ? linkify(a.body) : '暂无内容'}</div>
+    ${links}`);
+}
+
+/* ===== 组队渲染 ===== */
+function renderTeams() {
+  document.getElementById('teamCount').textContent = teams.length;
+  const grid = document.getElementById('teamGrid');
+  const wrap = document.getElementById('createWrap');
+  const mePlayer = ME && ME.user.player;
+  const inTeam = !!mePlayer && teams.some(t => t.my_role === 'leader' || t.my_role === 'member');
+  if (!ME) {
+    wrap.style.display = 'none';
+  } else {
+    wrap.style.display = 'block';
+    const btn = document.getElementById('btnCreateTeam');
+    btn.disabled = !!inTeam;
+    btn.innerHTML = inTeam ? '✓ 已在小队中（创建锁定）' : '＋ 创建小队';
+    btn.style.opacity = inTeam ? '.45' : '1';
+    document.getElementById('inTeamHint').style.display = inTeam ? 'block' : 'none';
+  }
+  if (!teams.length) {
+    grid.innerHTML = `<div class="empty">还没有小队。<br>${ME ? '点上方「＋ 创建小队」拉起第一支队伍。' : '登录后即可创建小队，或先认领/注册你的身份。'}</div>`;
+    return;
+  }
+  grid.innerHTML = teams.map(t => {
+    const s = TS[t.project_status] || TS.recruiting;
+    const mine = ME && (t.my_role === 'leader' || t.my_role === 'member');
+    return `<div class="team-card${mine ? ' mine' : ''}" onclick="openTeam(${t.id})">
+      <div class="t-top">
+        <div>
+          <div class="t-name">${esc(t.name)}${mine ? ' <span class="mine-tag">我的</span>' : ''}</div>
+          ${t.slogan ? `<div class="t-slogan">${esc(t.slogan)}</div>` : ''}
+        </div>
+        <span class="badge" style="color:${s.color};border:1px solid ${s.color}55;background:${s.color}14">${s.label}</span>
+      </div>
+      ${t.project_name ? `<div class="t-proj">项目：<b>${esc(t.project_name)}</b>${t.project_desc ? ' — ' + esc(t.project_desc) : ''}</div>` : ''}
+      ${t.role_needs ? `<div class="t-needs">需要：<b>${esc(t.role_needs)}</b></div>` : ''}
+      <div class="progress-bar"><i style="width:0" data-pct="${s.pct}"></i></div>
+      <div class="t-foot">
+        <div class="avatar-stack">${t.members.slice(0, 6).map(m => m.avatar ? `<img src="${esc(m.avatar)}" alt="">` : '<span class="ph">?</span>').join('')}</div>
+        <span class="t-count">${t.member_count} 人 · 队长 ${esc(t.leader?.name || '—')}</span>
+      </div>
+    </div>`;
+  }).join('');
+  // 进度条动画：插入后从 0 过渡到目标
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    grid.querySelectorAll('.progress-bar i[data-pct]').forEach(i => { i.style.width = i.dataset.pct + '%'; });
+  }));
+}
+
+/* ===== 我的渲染 ===== */
+function renderMe() {
+  const box = document.getElementById('meBox');
+  if (!ME) { box.innerHTML = `<div class="empty">请先登录<br><button class="btn primary" style="margin-top:14px" onclick="openLogin('register')">登录 / 注册</button></div>`; return; }
+  const p = ME.user.player;
+  box.innerHTML = `
+    <div class="me-card">
+      ${p && p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : ''}
+      <div class="who">
+        ${p ? `<b>${esc(p.name)}</b>${p.self_registered ? ' <span class="tag-free">新注册选手</span>' : ''}
+          <span class="role">${esc(roleList(p.role).join(' / ') || '未标注方向')}${p.grade ? ' · ' + esc(p.grade) : ''}</span>
+          <p>${esc(p.intro || '还没有自我介绍，去完善你的资料吧。')}</p>`
+        : `<b>已登录</b><p>当前账号（${esc(ME.user.email)}）还没有选手身份，请先认领或注册。</p>`}
+      </div>
+      <button class="btn ghost sm" onclick="openEditProfile()">✎ 编辑资料</button>
+    </div>
+    ${p ? '' : `<div class="me-section"><button class="btn primary btn-block" onclick="showTab('home')">去认领 / 注册身份</button></div>`}
+    ${ME.user.is_admin ? `<div class="me-section"><button class="btn primary btn-block" onclick="location.href='/admin.html'">⚙ 管理后台</button></div>` : ''}
+    <div class="me-section"><div class="section-title" style="margin-top:0">我的队伍</div><div id="myTeams"></div></div>
+    <div class="me-section"><div class="section-title" style="margin-top:0">账号</div>
+      <div class="me-list"><div class="ann"><div class="a-top"><span class="a-tag">EMAIL</span><span class="a-title">${esc(ME.user.email)}</span></div><div class="a-body">联系方式仅供队长联系，不对外展示。</div></div></div>
+      ${p ? `<button class="btn ghost sm" style="margin-top:10px;width:100%" onclick="toggleRetire()">${p.retired ? '↻ 恢复公开展示' : '🙈 撤下我的资料（不对外展示）'}</button>` : ''}
+    </div>
+    <div class="btn-row"><button class="btn ghost" onclick="logout()">退出登录</button></div>`;
+  renderMyTeams();
+}
+async function toggleRetire() {
+  if (!ME || !ME.user.player) return;
+  const wasVisible = !ME.user.player.retired;
+  if (wasVisible) {
+    askConfirm('撤下我的资料', '撤下后你的资料将不出现在主页认领名单，其他选手无法再看到你的介绍。可随时恢复。确定撤下吗？', '确认撤下', 'doToggleRetire()');
+  } else {
+    askConfirm('恢复公开展示', '恢复后你的资料将重新出现在主页认领名单。确定恢复吗？', '确认恢复', 'doToggleRetire()');
+  }
+}
+async function doToggleRetire() {
+  if (!ME || !ME.user.player) return;
+  const wasVisible = !ME.user.player.retired;
+  try {
+    const d = await api('/me/visibility', { method: 'POST', body: JSON.stringify({ visible: !wasVisible }) });
+    toast(d.msg); refresh();
+    const me2 = await api('/me'); if (me2.authed) { ME = me2; renderUser(); renderMe(); }
+  } catch (e) { err(e.message); }
+}
+async function renderMyTeams() {
+  const el = document.getElementById('myTeams');
+  if (!ME || !ME.user.player) { el.innerHTML = '<div class="empty">登录并拥有选手身份后可查看</div>'; return; }
+  try {
+    const d = await api('/teams/mine');
+    let html = '';
+    const card = t => {
+      const s = TS[t.project_status] || TS.recruiting;
+      return `<div class="team-card" style="cursor:pointer" onclick="openTeam(${t.id})">
+        <div class="t-top"><div><div class="t-name">${esc(t.name)}</div>${t.project_name ? `<div class="t-slogan">项目：${esc(t.project_name)}</div>` : ''}</div>
+        <span class="badge" style="color:${s.color};border:1px solid ${s.color}55;background:${s.color}14">${s.label}</span></div>
+        <div class="t-foot"><span class="t-count">${t.member_count} 人 · 队长 ${esc(t.leader?.name || '—')}</span></div>
+      </div>`;
+    };
+    if (!d.led.length && !d.joined.length) html += '<div class="empty">还没加入任何队伍<br>去「组队」广场看看，或创建一支属于你的队伍。</div>';
+    d.led.forEach(t => html += card(t));
+    d.joined.forEach(t => html += card(t));
+    if (d.pending.length) {
+      html += `<div class="ann" style="margin-top:10px"><div class="a-top"><span class="a-tag">PENDING</span><span class="a-title">等待确认的申请</span></div>
+        <div class="a-body">${d.pending.map(r => `${esc(r.team_name)}（${esc(TS[r.project_status]?.label || '')}）`).join('、')}</div></div>`;
+    }
+    el.innerHTML = html;
+  } catch (e) { el.innerHTML = '<div class="empty">加载失败</div>'; }
+}
+
+/* ===== 登录/注册 ===== */
+function openLogin(tab = 'claim') {
+  claimToken = ''; claimPlayer = null;
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>进入赛事</h3>
+    <div class="tabs">
+      <button id="tabClaim" class="${tab === 'claim' ? 'on' : ''}" onclick="loginTab('claim')">认领身份</button>
+      <button id="tabReg" class="${tab === 'register' ? 'on' : ''}" onclick="loginTab('register')">注册参赛</button>
+      <button id="tabAdmin" class="${tab === 'admin' ? 'on' : ''}" onclick="loginTab('admin')">管理员</button>
+    </div>
+    <div id="loginBody"></div>`);
+  loginTab(tab);
+}
+function loginTab(tab) {
+  const tc = document.getElementById('tabClaim'); const tr = document.getElementById('tabReg'); const ta = document.getElementById('tabAdmin');
+  if (tc) tc.className = tab === 'claim' ? 'on' : '';
+  if (tr) tr.className = tab === 'register' ? 'on' : '';
+  if (ta) ta.className = tab === 'admin' ? 'on' : '';
+  const body = document.getElementById('loginBody');
+  if (tab === 'claim') {
+    body.innerHTML = `
+      <p class="sub">你在飞书报名名单里？回到首页认领名单找到自己 → 点击认领 → 邮箱验证码登录即完成绑定。</p>
+      <div class="btn-row"><button class="btn primary" onclick="closeModal(); showTab('home')">去认领名单 →</button></div>
+      <div class="demo-line"><button class="btn ghost" onclick="demoLogin('jinxilin')">⚡ 体验登录 · 金熙林</button><span>模拟账号，免邮箱</span></div>
+      <div class="demo-line"><button class="btn ghost" onclick="demoLogin('bot')">🤖 体验登录 · 回响 Bot</button><span>模拟账号，免邮箱</span></div>
+      <p class="sub dim" style="margin-top:10px;font-size:12px">模拟账号仅试验期可用，正式发布前将全部清除。</p>`;
+  } else if (tab === 'admin') {
+    body.innerHTML = `
+      <p class="sub">管理员登录：可管理参赛队员、查看认领情况与队伍赛程。</p>
+      <div class="field"><label>管理员密码</label><input id="adminPwd" type="password" placeholder="请输入管理员密码" autocomplete="current-password"></div>
+      <div class="err-msg" id="modalErr"></div>
+      <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="adminLogin()">管理员登录 →</button></div>`;
+    setTimeout(() => document.getElementById('adminPwd')?.focus(), 80);
+  } else {
+    body.innerHTML = `
+      <p class="sub">登录 / 注册统一走邮箱验证码：输入邮箱 → 获取验证码 → 输码即登录。首次使用自动创建账号，已有账号直接登录，无需密码。</p>
+      <div class="field"><label>邮箱</label><input id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
+      <label class="consent"><input type="checkbox" id="regConsent"> 已阅读并同意 <a href="/privacy.html" target="_blank" style="color:var(--cyan)">《隐私政策》</a>，了解信息用途与删除方式</label>
+      <div class="err-msg" id="modalErr"></div>
+      <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="regStep1()">发送验证码 →</button></div>`;
+    setTimeout(() => document.getElementById('regEmail')?.focus(), 80);
+  }
+}
+async function regStep1() {
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('邮箱格式不对');
+  if (!document.getElementById('regConsent')?.checked) return err('请先阅读并同意《隐私政策》');
+  const btn = document.querySelector('#modalBox .btn.primary');
+  if (btn) { btn.disabled = true; btn.textContent = '发送中…'; }
+  try {
+    const d = await api('/auth/request-code', { method: 'POST', body: JSON.stringify({ email }) });
+    emailInput = email; devCode = d.devCode || '';
+    if (devCode) {
+      const box = document.getElementById('modalBox');
+      if (box) {
+        const old = box.querySelector('.dev-code'); if (old) old.remove();
+        const div = document.createElement('div');
+        div.className = 'dev-code';
+        div.innerHTML = `开发模式验证码：<b>${devCode}</b>（配置 MAIL_MODE 后改为发送到邮箱）`;
+        box.appendChild(div);
+      }
+    }
+    regStep2();
+  } catch (e) { err(e.message); if (btn) { btn.disabled = false; btn.textContent = '发送验证码 →'; } }
+}
+function regStep2() {
+  document.getElementById('loginBody').innerHTML = `
+    <p class="sub">验证码已发送至 <b style="color:var(--cyan)">${esc(emailInput)}</b>，10 分钟内有效。首次使用将自动注册，已有账号将直接登录。</p>
+    <div class="step-dot"><span class="on"></span><span class="on"></span></div>
+    <div class="field"><label>6 位验证码</label><input id="regCode" placeholder="123456" autocomplete="off" inputmode="numeric" maxlength="6"></div>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row"><button class="btn ghost" onclick="loginTab('register')">上一步</button><button class="btn primary" onclick="regVerify()">验证并登录</button></div>`;
+  setTimeout(() => document.getElementById('regCode')?.focus(), 80);
+}
+async function demoLogin(demo = 'jinxilin') {
+  try {
+    const d = await api('/demo/login', { method: 'POST', body: JSON.stringify({ demo }) });
+    TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
+    ME = d;
+    closeModal();
+    toast(`已以「<b>${d.user.player.name}</b>」身份进入（试验期体验登录）`);
+    renderUser(); refresh(); updateBadge(); showTab('me');
+    setTimeout(() => openGuide('claim'), 600);
+  } catch (e) { err(e.message); }
+}
+async function adminLogin() {
+  const pwd = document.getElementById('adminPwd').value;
+  if (!pwd) return err('请输入管理员密码');
+  try {
+    const d = await api('/auth/admin-login', { method: 'POST', body: JSON.stringify({ password: pwd }) });
+    TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
+    ME = d;
+    closeModal();
+    toast(`管理员登录成功，进入<b>后台管理</b>`);
+    renderUser(); updateBadge();
+    location.href = '/admin.html';
+  } catch (e) { err(e.message); }
+}
+async function regVerify() {
+  const code = document.getElementById('regCode').value.trim();
+  if (code.length !== 6) return err('请输入 6 位验证码');
+  try {
+    const d = await api('/auth/verify-code', { method: 'POST', body: JSON.stringify({ email: emailInput, code }) });
+    TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
+    ME = d;
+    closeModal();
+    toast(`${d.isNew ? '注册成功 ✓' : '登录成功 ✓ 欢迎回来'} <b>${d.user.player ? d.user.player.name : d.user.email}</b>${d.isNew ? '，去完善你的资料吧' : ''}`);
+    renderUser(); refresh(); updateBadge(); showTab('me');
+    setTimeout(() => openGuide('reg'), 600);
+  } catch (e) { err(e.message); }
+}
+
+/* ===== 认领流程 ===== */
+function startClaim(pid) {
+  const p = players.find(x => x.id === pid);
+  if (!p) return;
+  claimToken = ''; claimPlayer = p;
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>确认认领</h3>
+    <p class="sub">你正在认领 <b style="color:var(--cyan)">${esc(p.name)}</b>（${esc(roleList(p.role).join(' / ') || '未标注')}）。确认后完成邮箱验证码登录即完成绑定，<b style="color:var(--amber)">其他人无法再认领</b>。</p>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row">
+      <button class="btn ghost" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="doClaim()">确认认领 →</button>
+    </div>`);
+  setTimeout(() => document.getElementById('claimWechat')?.focus(), 80);
+}
+async function doClaim() {
+  try {
+    const d = await api('/claims', { method: 'POST', body: JSON.stringify({ player_id: claimPlayer.id }) });
+    claimToken = d.claim_token;
+    loginStep1();
+  } catch (e) { err(e.message); }
+}
+function loginStep1() {
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>邮箱验证码登录</h3>
+    <p class="sub">已锁定 <b style="color:var(--cyan)">${esc(claimPlayer.name)}</b>。最后一步：输入邮箱并完成验证码登录，身份即完成绑定。</p>
+    <div class="step-dot"><span class="on"></span><span></span><span></span></div>
+    <div class="field"><label>邮箱</label><input id="loginEmail" placeholder="you@example.com" autocomplete="email"></div>
+    <label class="consent"><input type="checkbox" id="claimConsent"> 已阅读并同意 <a href="/privacy.html" target="_blank" style="color:var(--cyan)">《隐私政策》</a>，了解信息用途与删除方式</label>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row">
+      <button class="btn ghost" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="requestCode()">发送验证码</button>
+    </div>`);
+  setTimeout(() => document.getElementById('loginEmail')?.focus(), 80);
+}
+async function requestCode() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('邮箱格式不对');
+  if (!document.getElementById('claimConsent')?.checked) return err('请先阅读并同意《隐私政策》');
+  const btn = document.querySelector('#modalBox .btn.primary');
+  if (btn) { btn.disabled = true; btn.textContent = '发送中…'; }
+  try {
+    const d = await api('/auth/request-code', { method: 'POST', body: JSON.stringify({ email }) });
+    emailInput = email; devCode = d.devCode || '';
+    if (devCode) {
+      const box = document.getElementById('modalBox');
+      if (box) {
+        const old = box.querySelector('.dev-code'); if (old) old.remove();
+        const div = document.createElement('div');
+        div.className = 'dev-code';
+        div.innerHTML = `开发模式验证码：<b>${devCode}</b>（配置 MAIL_MODE 后改为发送到邮箱）`;
+        box.appendChild(div);
+      }
+    }
+    loginStep2();
+  } catch (e) { err(e.message); if (btn) { btn.disabled = false; btn.textContent = '发送验证码'; } }
+}
+function loginStep2() {
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>输入验证码</h3>
+    <p class="sub">验证码已发送至 <b style="color:var(--cyan)">${esc(emailInput)}</b>，10 分钟内有效。</p>
+    <div class="step-dot"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+    <div class="field"><label>6 位验证码</label><input id="loginCode" placeholder="123456" autocomplete="off" inputmode="numeric" maxlength="6"></div>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row">
+      <button class="btn ghost" onclick="loginStep1()">上一步</button>
+      <button class="btn primary" onclick="verifyCode()">登录并绑定</button>
+    </div>`);
+  setTimeout(() => document.getElementById('loginCode')?.focus(), 80);
+}
+async function verifyCode() {
+  const code = document.getElementById('loginCode').value.trim();
+  if (code.length !== 6) return err('请输入 6 位验证码');
+  try {
+    const d = await api('/auth/verify-code', { method: 'POST', body: JSON.stringify({ email: emailInput, code, claim_token: claimToken }) });
+    TOKEN = d.token; localStorage.setItem('xjhack_token', TOKEN);
+    ME = d;
+    closeModal();
+    toast(`认证成功 ✓ <b>${d.user.player ? d.user.player.name : d.user.email}</b> 已登录`);
+    renderUser(); refresh(); updateBadge(); showTab('home');
+    setTimeout(() => openGuide('claim'), 600);
+  } catch (e) { err(e.message); }
+}
+
+/* ===== 资料编辑 ===== */
+const TAG_TPL = ['Python', 'Go', 'C++', 'Java', '前端', 'UI 设计', '产品', '运营', '数据', 'AI', '硬件', '嵌入式', '游戏', '剪辑', '摄影'];
+let TAG_LIST = [];
+/* 方向（可多选，逗号分隔存储） */
+const ROLE_OPTS = ['开发', '设计', '产品', '硬件', '运营', '教育', 'AI', '其他'];
+function roleList(role) { return (role || '').split(/[,，、]/).map(x => x.trim()).filter(Boolean); }
+function toggleRole(el) { el.classList.toggle('on'); }
+function roleChips(role) {
+  const sel = roleList(role);
+  return ROLE_OPTS.map(r => `<span class="role-chip${sel.includes(r) ? ' on' : ''}" onclick="toggleRole(this)">${esc(r)}</span>`).join('');
+}
+function renderTagBox() {
+  const box = document.getElementById('tagBox');
+  if (!box) return;
+  box.innerHTML = TAG_LIST.map((t, i) => `<span class="tag-chip">${esc(t)}<i onclick="rmTag(${i})">×</i></span>`).join('') +
+    `<button class="tag-add" onclick="tagPrompt()">＋</button>`;
+}
+function tagPrompt() {
+  const line = document.getElementById('tagInputLine');
+  const input = document.getElementById('tagInput');
+  if (line.style.display === 'none') {
+    line.style.display = 'flex';
+    setTimeout(() => input.focus(), 60);
+  } else {
+    const v = input.value.trim();
+    if (v) { addTag(v); input.value = ''; }
+    line.style.display = 'none';
+  }
+}
+function confirmTagInput() {
+  const input = document.getElementById('tagInput');
+  const v = input.value.trim();
+  if (v) addTag(v);
+  input.value = '';
+  document.getElementById('tagInputLine').style.display = 'none';
+  document.getElementById('tagBox')?.focus();
+}
+function addTag(t) {
+  t = String(t).trim();
+  if (!t || TAG_LIST.includes(t)) return toast('标签已存在', true);
+  if (TAG_LIST.length >= 10) return toast('最多 10 个标签', true);
+  TAG_LIST.push(t);
+  renderTagBox();
+}
+function rmTag(i) {
+  TAG_LIST.splice(i, 1);
+  renderTagBox();
+}
+function openEditProfile() {
+  if (!ME || !ME.user.player) return toast('请先登录', true);
+  const p = ME.user.player;
+  TAG_LIST = (p.tags || '').split(/\s+/).filter(Boolean);
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>编辑我的资料</h3>
+    <p class="sub">${p.self_registered ? '自由选手可修改姓名；' : '你的身份来自飞书报名表，姓名锁定不可改（防冒领）。'}联系方式仅队长可见，不对外展示。</p>
+    <div class="field"><label>姓名</label><input id="pfName" value="${esc(p.name)}" ${p.self_registered ? '' : 'disabled'}></div>
+    <div class="field"><label>昵称（可选）</label><input id="pfNick" placeholder="@handle" value="${esc(p.nickname || '')}"></div>
+    <div class="field"><label>方向（可多选）</label>
+      <div class="role-chips">${roleChips(p.role)}</div></div>
+    <div class="field"><label>年级 / 学校（可选）</label><input id="pfGrade" placeholder="例如：高二 / 浙大大二" value="${esc(p.grade || '')}"></div>
+    <div class="field"><label>自我介绍 / 高光</label><textarea id="pfIntro">${esc(p.intro || '')}</textarea></div>
+    <div class="field"><label>技能标签</label>
+      <div class="tag-edit" id="tagBox"></div>
+      <div class="tag-input-line" id="tagInputLine" style="display:none"><input id="tagInput" placeholder="输入标签后点完成" maxlength="12" autocomplete="off"><button class="btn ghost sm" onclick="confirmTagInput()">完成</button></div>
+      <div class="tag-tpl">快速添加：${TAG_TPL.map(t => `<span onclick="addTag('${t}')">${esc(t)}</span>`).join('')}</div></div>
+    <div class="field"><label>联系方式（仅队长可见）</label><input id="pfContact" placeholder="手机 / 邮箱 / 其他" value="${esc(p.contact || '')}"></div>
+    <div class="field"><label>头像链接</label><input id="pfAvatar" placeholder="https://…" value="${esc(p.avatar || '')}"></div>
+    <div class="field"><label>或用默认头像</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${AV_STOCK.map((u, i) => `<img src="${u}" onclick="pickAvatar(this)" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--line);cursor:pointer" data-url="${u}" alt="默认${i + 1}">`).join('')}</div></div>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveProfile()">保存资料</button></div>`);
+  setTimeout(() => renderTagBox(), 60);
+}
+function pickAvatar(img) {
+  const inp = document.getElementById('pfAvatar');
+  if (inp) { inp.value = img.dataset.url; document.querySelectorAll('#modalBox img[data-url]').forEach(x => x.style.borderColor = 'var(--line)'); img.style.borderColor = 'var(--cyan)'; }
+}
+async function saveProfile() {
+  const body = {
+    name: document.getElementById('pfName').value.trim(),
+    nickname: document.getElementById('pfNick').value.trim(),
+    role: [...document.querySelectorAll('#modalBox .role-chip.on')].map(x => x.textContent).join(','),
+    grade: document.getElementById('pfGrade').value.trim(),
+    intro: document.getElementById('pfIntro').value.trim(),
+    tags: TAG_LIST.join(' '),
+    contact: document.getElementById('pfContact').value.trim(),
+    avatar: document.getElementById('pfAvatar').value.trim()
+  };
+  if (!body.name) return err('姓名不能为空');
+  try {
+    const d = await api('/me/player', { method: 'PUT', body: JSON.stringify(body) });
+    ME.user.player = d.player;
+    closeModal();
+    toast('资料已更新 ✓');
+    renderMe(); renderGrid();
+  } catch (e) { err(e.message); }
+}
+
+/* ===== 队伍操作 ===== */
+function openCreateTeam() {
+  if (!ME || !ME.user.player) return toast('请先登录并获得选手身份', true);
+  NEEDS = [];
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>创建小队</h3>
+    <p class="sub">拉一支 2-4 人小队，48H 一起做点东西。已在小队中则无法创建。</p>
+    <div class="field"><label>队伍名称 *</label><input id="ctName" placeholder="例如：全栈小分队"></div>
+    <div class="field"><label>Slogan（可选）</label><input id="ctSlogan" placeholder="一句话介绍你的队伍"></div>
+    <div class="field"><label>需要什么方向的人</label>
+      <div class="dir-chips" id="dirChips">${['开发', '设计', '产品', '硬件', '运营', '教育', 'AI', '其他'].map(r => `<span class="dir-chip" data-r="${r}" onclick="toggleNeed(this)">${esc(r)}</span>`).join('')}</div></div>
+    <div class="field"><label>队伍简介</label><textarea id="ctIntro" placeholder="你们的优势、想做什么…"></textarea></div>
+    <div class="field"><label>项目灵感模板（点击直接填入）</label>
+      <div class="dir-chips" id="projTpl">${['AI 应用', '校园工具', '数据可视化', '硬件作品', '游戏 Demo', '内容创作'].map(p => `<span class="dir-chip tpl" data-p="${p}" onclick="pickProj(this)">${esc(p)}</span>`).join('')}</div></div>
+    <div class="field"><label>项目名（可选）</label><input id="ctProj" placeholder="先想好也可以后填"></div>
+    <div class="field"><label>项目简介（可选）</label><textarea id="ctProjDesc" placeholder="想做一个什么样的项目？"></textarea></div>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="createTeam()">创建小队 →</button></div>`);
+}
+let NEEDS = [];
+function toggleNeed(el) {
+  const r = el.dataset.r;
+  const i = NEEDS.indexOf(r);
+  if (i >= 0) { NEEDS.splice(i, 1); el.classList.remove('on'); }
+  else { NEEDS.push(r); el.classList.add('on'); }
+}
+function pickProj(el) {
+  const v = el.dataset.p;
+  document.getElementById('ctProj').value = v;
+  document.querySelectorAll('#projTpl .dir-chip').forEach(x => x.classList.remove('on'));
+  el.classList.add('on');
+}
+async function createTeam() {
+  const name = document.getElementById('ctName').value.trim();
+  if (!name) return err('队伍名称不能为空');
+  try {
+    const d = await api('/teams', { method: 'POST', body: JSON.stringify({
+      name, slogan: document.getElementById('ctSlogan').value.trim(),
+      role_needs: NEEDS.join(' '),
+      intro: document.getElementById('ctIntro').value.trim(),
+      project_name: document.getElementById('ctProj').value.trim(),
+      project_desc: document.getElementById('ctProjDesc').value.trim()
+    })});
+    closeModal(); toast('小队已创建 ✓'); loadTeams();
+  } catch (e) { err(e.message); }
+}
+function openTeam(id) {
+  const t = teams.find(x => x.id === id);
+  if (!t) return;
+  const s = TS[t.project_status] || TS.recruiting;
+  const meRole = ME && ME.user.player ? t.my_role : 'guest';
+  const isLeader = meRole === 'leader';
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>${esc(t.name)} <span class="badge" style="color:${s.color};border:1px solid ${s.color}55;background:${s.color}14">${s.label}</span></h3>
+    ${t.slogan ? `<p class="sub">${esc(t.slogan)}</p>` : ''}
+    ${t.project_name ? `<div class="t-proj" style="margin-top:12px">项目：<b>${esc(t.project_name)}</b>${t.project_desc ? ' — ' + esc(t.project_desc) : ''}</div>` : ''}
+    ${t.intro ? `<p class="sub">${esc(t.intro)}</p>` : ''}
+    ${t.role_needs ? `<div class="t-needs" style="margin-top:8px">需要：<b>${esc(t.role_needs)}</b></div>` : ''}
+    <div class="progress-bar"><i style="width:${s.pct}%"></i></div>
+
+    <div class="section-title" style="margin:16px 0 8px">成员 ${t.member_count}</div>
+    <div class="me-list">${t.members.map(m => `
+      <div class="ann"><div class="a-top">
+        ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
+        <span class="a-title">${esc(m.name)}</span>
+        <span style="font-size:10px;color:var(--text-3)">${esc(m.role || '')}</span>
+        ${m.id === t.leader?.id ? `<span class="a-tag" style="background:rgba(255,180,84,.1);color:var(--amber);border-color:rgba(255,180,84,.3)">队长</span>` : ''}
+      </div></div>`).join('')}</div>
+
+    ${isLeader ? `
+      <div class="section-title" style="margin:16px 0 8px">项目状态</div>
+      <div class="status-strip">${Object.keys(TS).filter(k => k !== 'disbanded').map(k => `
+        <span class="st-item ${t.project_status === k ? 'on' : ''}" style="${t.project_status === k ? `background:${TS[k].color};border-color:${TS[k].color}` : ''}" onclick="setTeamStatus(${t.id}, '${k}')">${TS[k].label}</span>`).join('')}</div>
+
+      ${t.requests.filter(r => r.status === 'pending').length ? `
+      <div class="section-title" style="margin:16px 0 8px">入队申请</div>
+      <div class="me-list">${t.requests.filter(r => r.status === 'pending').map(r => `
+        <div class="ann"><div class="a-top">
+          <span class="a-title">${esc(r.name)}</span><span style="font-size:10px;color:var(--text-3)">${esc(r.role || '')}</span>
+        </div>${r.msg ? `<div class="a-body">${esc(r.msg)}</div>` : ''}
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn sm primary" onclick="handleRequest(${t.id}, ${r.id}, 'accept')">接受</button>
+          <button class="btn sm danger" onclick="handleRequest(${t.id}, ${r.id}, 'reject')">拒绝</button>
+        </div></div>`).join('')}</div>` : ''}
+      <div class="btn-row">
+        <button class="btn ghost" onclick="openEditTeam(${t.id})">✎ 编辑队伍</button>
+        <button class="btn danger" onclick="disbandTeam(${t.id})">解散队伍</button>
+      </div>`
+    : meRole === 'member' ? `
+      <div class="btn-row"><button class="btn danger" onclick="leaveTeam(${t.id})">退出队伍</button></div>`
+    : meRole === 'pending' ? `
+      <div class="btn-row"><button class="btn ghost" disabled>已提交申请，等待队长确认</button></div>`
+    : ME && ME.user.player ? `
+      <div class="field"><label>想对队长说什么（可选）</label><input id="joinMsg" placeholder="我的优势是…"></div>
+      <div class="btn-row"><button class="btn primary" onclick="joinTeam(${t.id})">申请加入</button></div>`
+    : `
+      <div class="btn-row"><button class="btn primary" onclick="openLogin('register')">登录后申请加入</button></div>`}
+  `);
+}
+async function joinTeam(id) {
+  try {
+    const msg = document.getElementById('joinMsg')?.value.trim() || '';
+    const d = await api(`/teams/${id}/join`, { method: 'POST', body: JSON.stringify({ msg }) });
+    toast(d.msg || '申请已提交'); loadTeams(); closeModal();
+  } catch (e) { err(e.message); }
+}
+async function handleRequest(tid, rid, action) {
+  try {
+    const d = await api(`/teams/${tid}/requests/${rid}`, { method: 'POST', body: JSON.stringify({ action }) });
+    toast(d.msg || '已处理'); loadTeams(); openTeam(tid); updateBadge();
+  } catch (e) { err(e.message); }
+}
+async function setTeamStatus(tid, st) {
+  try {
+    const d = await api(`/teams/${tid}`, { method: 'PUT', body: JSON.stringify({ project_status: st }) });
+    toast(`状态已更新为「${TS[st].label}」`); loadTeams(); openTeam(tid);
+  } catch (e) { err(e.message); }
+}
+async function leaveTeam(tid) {
+  askConfirm('退出队伍', '退出后你将变为无队伍状态，可自由申请加入其他队伍。确定退出吗？', '退出队伍', `doLeaveTeam(${tid})`);
+}
+async function doLeaveTeam(tid) {
+  try { const d = await api(`/teams/${tid}/leave`, { method: 'POST' }); toast(d.msg); loadTeams(); closeModal(); }
+  catch (e) { err(e.message); }
+}
+async function disbandTeam(tid) {
+  const t = teams.find(x => x.id === tid);
+  askConfirm(`解散队伍「${t ? t.name : ''}」`, '解散后所有成员将被移出，队伍记录与未处理申请将全部删除，此操作不可恢复！', '确认解散', `doDisbandTeam(${tid})`);
+}
+async function doDisbandTeam(tid) {
+  try { const d = await api(`/teams/${tid}/disband`, { method: 'POST' }); toast(d.msg); loadTeams(); closeModal(); }
+  catch (e) { err(e.message); }
+}
+function openEditTeam(tid) {
+  const t = teams.find(x => x.id === tid);
+  if (!t) return;
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>编辑队伍</h3>
+    <div class="field"><label>队伍名称</label><input id="etName" value="${esc(t.name)}"></div>
+    <div class="field"><label>Slogan</label><input id="etSlogan" value="${esc(t.slogan || '')}"></div>
+    <div class="field"><label>需要什么方向的人</label><input id="etNeeds" value="${esc(t.role_needs || '')}"></div>
+    <div class="field"><label>队伍简介</label><textarea id="etIntro">${esc(t.intro || '')}</textarea></div>
+    <div class="field"><label>项目名</label><input id="etProj" value="${esc(t.project_name || '')}"></div>
+    <div class="field"><label>项目简介</label><textarea id="etProjDesc">${esc(t.project_desc || '')}</textarea></div>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row"><button class="btn ghost" onclick="openTeam(${tid})">返回</button><button class="btn primary" onclick="saveTeam(${tid})">保存</button></div>`);
+}
+async function saveTeam(tid) {
+  try {
+    await api(`/teams/${tid}`, { method: 'PUT', body: JSON.stringify({
+      name: document.getElementById('etName').value.trim(),
+      slogan: document.getElementById('etSlogan').value.trim(),
+      role_needs: document.getElementById('etNeeds').value.trim(),
+      intro: document.getElementById('etIntro').value.trim(),
+      project_name: document.getElementById('etProj').value.trim(),
+      project_desc: document.getElementById('etProjDesc').value.trim()
+    })});
+    toast('队伍已更新 ✓'); loadTeams(); openTeam(tid);
+  } catch (e) { err(e.message); }
+}
+
+/* ===== 登录态渲染 ===== */
+/* 角标 + 申请结果反馈 */
+async function updateBadge() {
+  document.getElementById('badgeTeams').classList.remove('show');
+  document.getElementById('badgeMe').classList.remove('show');
+  if (!ME || !ME.user.player) return;
+  try {
+    const d = await api('/teams/mine');
+    const myPending = d.pending.length;
+    const leadPending = d.led.reduce((n, t) => n + (t.requests ? t.requests.filter(r => r.status === 'pending').length : 0), 0);
+    const bT = document.getElementById('badgeTeams');
+    const bM = document.getElementById('badgeMe');
+    if (myPending) { bT.textContent = myPending > 9 ? '9+' : myPending; bT.classList.add('show'); }
+    if (leadPending) { bM.textContent = leadPending > 9 ? '9+' : leadPending; bM.classList.add('show'); }
+    checkRequestResults(d.results || []);
+  } catch (e) { /* 角标失败不打扰 */ }
+}
+function checkRequestResults(results) {
+  try {
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('xjhack_seen_reqs') || '[]'); } catch (e) {}
+    const fresh = results.filter(r => !seen.includes(r.request_id + ':' + r.status));
+    fresh.forEach(r => {
+      if (r.status === 'accepted') toast(`✓ 队长已接受你的申请，<b>${esc(r.team_name)}</b> 欢迎你！去「我的」看看吧`);
+      else toast(`队长拒绝了你在 <b>${esc(r.team_name)}</b> 的申请，去广场看看别的队伍吧`, true);
+    });
+    if (fresh.length) {
+      seen = results.map(r => r.request_id + ':' + r.status).concat(seen).slice(0, 50);
+      localStorage.setItem('xjhack_seen_reqs', JSON.stringify(seen));
+    }
+  } catch (e) {}
+}
+/* 首次使用引导 */
+function openGuide(kind) {
+  const isReg = kind === 'reg';
+  const player = ME && ME.user.player;
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>欢迎，<span class="grad">${esc(player ? player.name : '新伙伴')}</span>！</h3>
+    <p class="sub">${isReg ? '自由选手身份已创建。你的资料由你管理，现在花 1 分钟完善它，队友更容易找到你。' : '身份已绑定。把自我介绍和方向填完整，组队时更容易被看到。'}</p>
+    <div class="guide-actions">
+      <button class="btn primary" onclick="closeModal(); showTab('me'); openEditProfile()">✎ 完善我的资料</button>
+      <button class="btn ghost" onclick="closeModal(); showTab('teams')">去组队广场找队友 →</button>
+    </div>
+    <div class="guide-note">提示：方向 + 技能标签越具体，匹配推荐越准。</div>`);
+}
+function renderUser() {
+  // 单会话：本地有 token 但服务端已无此会话（账号在别处登录被踢出 / 会话过期）→ 提示一次并清理
+  if (!ME && TOKEN && !window.__kickedNotified) {
+    window.__kickedNotified = true;
+    toast('登录已失效：该账号可能已在其他设备登录，你已被退出。', true);
+    TOKEN = null; localStorage.removeItem('xjhack_token');
+  }
+  const chip = document.getElementById('userChip');
+  const claim = document.getElementById('claimView');
+  const dash = document.getElementById('homeDash');
+  const heroTitle = document.getElementById('heroTitle');
+  const heroDesc = document.getElementById('heroDesc');
+  const heroCta = document.getElementById('heroCta');
+  if (!ME) {
+    chip.style.display = 'none'; claim.style.display = 'block'; dash.style.display = 'none';
+    heroTitle.innerHTML = '认领你的<span class="grad">身份</span>，加入 48H';
+    heroDesc.textContent = '在认领名单里找到自己 → 确认身份 → 邮箱验证码登录即完成认领。不在名单？一键注册参赛，完善你的资料。';
+    heroCta.innerHTML = `<button class="btn primary" style="flex:1;max-width:220px" onclick="openLogin('register')">不在名单？注册参赛</button>
+      <button class="btn ghost" style="flex:1;max-width:220px" onclick="openLogin('claim')">已在名单？认领身份</button>`;
+    return;
+  }
+  chip.style.display = 'flex';
+  chip.innerHTML = `
+    <span class="dot"></span>${ME.user.player ? `<b>${esc(ME.user.player.name)}</b>` : `<b>${esc(ME.user.email)}</b>`}
+    ${ME.user.is_admin ? `<button onclick="location.href='/admin.html'">后台</button>` : ''}
+    <button onclick="logout()">退出</button>`;
+  claim.style.display = 'none'; dash.style.display = 'block';
+  heroTitle.innerHTML = `Hi，<span class="grad">${esc(ME.user.player ? ME.user.player.name : '伙伴')}</span>`;
+  heroDesc.textContent = '赛程、公告都在这里；去「组队」广场找队友，或在「我的」里完善你的资料。';
+  heroCta.innerHTML = '';
+  // 首页顶部：替换认领框 → 选手个人信息卡
+  const meHero = document.getElementById('meHero');
+  const p = ME.user.player;
+  if (p) {
+    meHero.style.display = 'block';
+    const tags = (p.tags || '').split(/\s+/).filter(Boolean);
+    meHero.innerHTML = `
+      <div class="me-hero-card">
+        <div class="mh-main">
+          ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : '<span class="ph">' + esc((p.name || '?')[0]) + '</span>'}
+          <div class="mh-info">
+            <div class="mh-name">${esc(p.name)}${p.self_registered ? ' <span class="tag-free">新注册</span>' : ''}</div>
+            <div class="mh-meta">${esc(roleList(p.role).join(' / ') || '未标注方向')}${p.grade ? ' · ' + esc(p.grade) : ''}</div>
+            <div class="mh-status"><span class="dot on"></span>已认领参赛</div>
+          </div>
+          <button class="btn ghost sm" onclick="openEditProfile()">✎ 编辑</button>
+        </div>
+        ${p.intro ? `<div class="mh-intro">${esc(p.intro)}</div>` : `<div class="mh-intro dim">还没有自我介绍，点右上角「编辑」完善，队友更容易找到你。</div>`}
+        ${tags.length ? `<div class="mh-tags">${tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>` : ''}
+        <div class="mh-actions">
+          <button class="btn primary sm" onclick="showTab('teams')">去组队广场 →</button>
+          <button class="btn ghost sm" onclick="showTab('me')">查看我的队伍</button>
+        </div>
+      </div>`;
+  } else {
+    meHero.style.display = 'none';
+  }
+}
+
+/* ===== 通用 ===== */
+function modal(html) { document.getElementById('modalBox').innerHTML = html; document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function askConfirm(title, desc, okText, cb) {
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>⚠️ ${esc(title)}</h3>
+    <p class="sub">${esc(desc)}</p>
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row"><button class="btn ghost" onclick="closeModal()">再想想</button><button class="btn danger" onclick="closeModal(); ${cb}">${esc(okText)}</button></div>`);
+}
+function err(msg) {
+  const el = document.getElementById('modalErr');
+  if (!el) return toast(msg, true);
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+function logout() {
+  askConfirm('退出登录', '退出后需要重新登录，才能继续查看赛程、公告与组队信息。确定退出吗？', '退出登录', 'doLogout()');
+}
+async function doLogout() {
+  await api('/auth/logout', { method: 'POST' }).catch(() => {});
+  localStorage.removeItem('xjhack_token'); TOKEN = ''; ME = null;
+  renderUser(); refresh(); showTab('home');
+  toast('已退出登录');
+}
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+/* ===== 启动 ===== */
+/* 触顶下拉刷新 */
+(function () {
+  const hint = document.getElementById('pullHint');
+  let startY = 0, tracking = false, moved = 0;
+  document.addEventListener('touchstart', e => {
+    if (e.target.closest('#modal') || window.scrollY > 0) return;
+    startY = e.touches[0].clientY; tracking = true; moved = 0;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    const dy = e.touches[0].clientY - startY;
+    moved = dy;
+    if (dy > 8) hint.classList.add('show');
+  }, { passive: true });
+  document.addEventListener('touchend', () => {
+    if (!tracking) return;
+    tracking = false;
+    hint.classList.remove('show');
+    if (moved > 70) {
+      toast('已刷新 ↻');
+      refresh(); loadTeams(); if (ME) updateBadge();
+    }
+  }, { passive: true });
+})();
+(async () => {
+  try {
+    if (TOKEN) {
+      const d = await api('/me');
+      if (d.authed) ME = d;
+      else { localStorage.removeItem('xjhack_token'); TOKEN = ''; }
+    }
+  } catch (e) {
+    // 服务重启窗口：重试一次恢复登录态，避免误显示未登录
+    try { await new Promise(r => setTimeout(r, 1200)); const d = await api('/me'); if (d.authed) ME = d; }
+    catch (e2) { /* 仍失败则保持游客态 */ }
+  }
+  await refresh();
+  await loadTeams();
+  renderUser();
+  renderStats();
+  updateBadge();
+  showTab('home');
+  document.getElementById('playerSearch')?.addEventListener('input', onSearch);
+})();
+</script>
+</body>
+</html>

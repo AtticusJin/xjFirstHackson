@@ -1,0 +1,19 @@
+{
+  "name": "xjhack-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "学军中学黑客松赛事系统：选手认领 + 邮箱验证码登录 + 微信扫码登录 + 管理员后台",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node --env-file=.env server/index.js",
+    "dev": "node --watch --env-file=.env server/index.js",
+    "import": "node --env-file=.env server/import-csv.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.23.0"
+  }
+}

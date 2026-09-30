@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学军中学黑客松 · 管理后台</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap">
+<style>
+:root{
+  --bg:#070B14; --panel:#0D1424; --card:#111A30; --line:#1E2A47; --line-soft:rgba(30,42,71,.6);
+  --cyan:#46F0C8; --amber:#FFB454; --violet:#8B7CFF; --pink:#FF5C8A; --green:#4ADE9B;
+  --text:#E8EEFF; --text-2:#9AA8C7; --text-3:#5C6B8F;
+  --display:'ZCOOL QingKe HuangYou',sans-serif; --mono:'JetBrains Mono',monospace; --body:'Noto Sans SC',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 20px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:22px;letter-spacing:1px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--pink),var(--violet) 60%,var(--amber));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:800;color:#04120E}
+.brand .grad{background:linear-gradient(100deg,var(--pink),var(--violet) 60%,var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+.top-actions{display:flex;gap:8px}
+.top-actions button{background:var(--card);border:1px solid var(--line);color:var(--text-2);font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:var(--mono)}
+.top-actions button:hover{border-color:var(--cyan);color:var(--cyan)}
+.hint{font-family:var(--mono);font-size:11px;color:var(--text-3);margin:14px 0 20px}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.stats .st{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 18px;min-width:120px}
+.stats .st b{font-family:var(--mono);font-size:20px;color:var(--cyan);display:block}
+.stats .st span{font-size:11px;color:var(--text-3)}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tabs button{background:var(--card);border:1px solid var(--line);color:var(--text-2);font-size:13px;padding:8px 18px;border-radius:9px;cursor:pointer;font-family:var(--mono)}
+.tabs button.on{background:rgba(70,240,200,.1);border-color:var(--cyan);color:var(--cyan)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:none}
+.panel.on{display:block}
+.panel h3{font-family:var(--display);font-size:16px;font-weight:400;margin-bottom:14px;letter-spacing:.5px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:middle}
+th{font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:600}
+td input,td select{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px 8px;font-size:12px;outline:none;width:100%;font-family:var(--mono)}
+td input:focus,td select:focus{border-color:var(--cyan)}
+td .btn{width:auto;padding:5px 12px;font-size:11px}
+.btn{border:none;border-radius:7px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--mono);transition:filter .15s;background:var(--card);color:var(--text-2);border:1px solid var(--line)}
+.btn.save{background:var(--cyan);color:#04120E;border:none}
+.btn.save:hover{filter:brightness(1.12)}
+.btn.del{border-color:rgba(255,92,138,.4);color:var(--pink);background:rgba(255,92,138,.08)}
+.btn.add{background:rgba(139,124,255,.12);color:var(--violet);border-color:rgba(139,124,255,.4)}
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:5px}
+.badge.pending{background:rgba(255,180,84,.12);color:var(--amber);border:1px solid rgba(255,180,84,.4)}
+.badge.bound{background:rgba(74,222,155,.1);color:var(--green);border:1px solid rgba(74,222,155,.3)}
+.badge.released{background:var(--card);color:var(--text-3);border:1px solid var(--line)}
+.row-actions{display:flex;gap:6px}
+.add-form{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.add-form input{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-size:12px;outline:none;font-family:var(--mono)}
+.add-form input:focus{border-color:var(--violet)}
+.toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:13px;padding:10px 18px;border-radius:10px;animation:slideUp .2s ease;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast b{color:var(--cyan)}
+.toast.warn{border-color:rgba(255,92,138,.5)}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.login-card{max-width:420px;margin:10vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:30px;text-align:center}
+.login-card h2{font-family:var(--display);font-size:24px;font-weight:400}
+.login-card p{font-size:13px;color:var(--text-2);margin:12px 0 22px;line-height:1.8}
+.empty{color:var(--text-3);text-align:center;padding:20px;font-family:var(--mono);font-size:12px}
+.table-scroll{overflow-x:auto}
+@media(max-width:760px){.add-form{grid-template-columns:1fr}table{font-size:11px}td,th{padding:6px 4px}.wrap{padding:14px 12px 60px}.stats .st{min-width:auto;flex:1}.stats{gap:8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><span class="logo">AD</span><span>学军黑客松 · <span class="grad">管理后台</span></span></div>
+    <div class="top-actions">
+      <button onclick="location.href='/'">返回主站</button>
+      <button onclick="logout()">退出登录</button>
+    </div>
+  </div>
+  <div class="hint">~/xjhack --admin --schedules --claims --players <span style="color:var(--cyan)">▊</span></div>
+
+  <div id="app" style="display:none">
+    <div class="stats" id="stats"></div>
+    <div class="tabs">
+      <button data-tab="schedules" class="on">赛程</button>
+      <button data-tab="announcements">公告</button>
+      <button data-tab="claims">认领</button>
+      <button data-tab="players">选手</button>
+      <button data-tab="teams">队伍</button>
+      <button data-tab="pool">等待池</button>
+    </div>
+
+    <div class="panel on" id="tab-schedules">
+      <h3>赛程管理</h3>
+      <table><thead><tr><th style="width:60px">DAY</th><th style="width:70px">时间</th><th>标题</th><th>说明</th><th style="width:70px">状态</th><th style="width:50px">排序</th><th style="width:120px">操作</th></tr></thead>
+      <tbody id="schBody"></tbody></table>
+      <div class="row-actions" style="margin-top:14px"><button class="btn add" onclick="addSchedule()">+ 新增赛程节点</button></div>
+    </div>
+
+    <div class="panel" id="tab-announcements">
+      <h3>公告管理</h3>
+      <table><thead><tr><th style="width:70px">标签</th><th>标题</th><th>内容</th><th style="width:90px">时间</th><th style="width:60px">置顶</th><th style="width:120px">操作</th></tr></thead>
+      <tbody id="annBody"></tbody></table>
+      <div class="row-actions" style="margin-top:14px"><button class="btn add" onclick="addAnnouncement()">+ 新增公告</button></div>
+    </div>
+
+    <div class="panel" id="tab-claims">
+      <h3>认领管理</h3>
+      <table><thead><tr><th style="width:50px">ID</th><th>选手</th><th>微信号</th><th>绑定邮箱</th><th style="width:90px">状态</th><th style="width:130px">时间</th><th style="width:90px">操作</th></tr></thead>
+      <tbody id="claimBody"></tbody></table>
+    </div>
+
+    <div class="panel" id="tab-players">
+      <h3>选手管理</h3>
+      <div class="table-scroll">
+      <table><thead><tr><th style="width:50px">ID</th><th style="width:110px">姓名</th><th style="width:110px">类型</th><th style="width:130px">方向</th><th style="width:130px">年级</th><th style="width:120px">宿舍</th><th style="width:100px">状态</th><th style="width:100px">操作</th></tr></thead>
+      <tbody id="playerBody"></tbody></table>
+      </div>
+      <div class="add-form" id="addPlayerForm">
+        <input id="npName" placeholder="姓名 *">
+        <input id="npWechat" placeholder="微信号（认领校验用）">
+        <input id="npRole" placeholder="方向（开发/设计/产品/硬件/运营）">
+        <input id="npGrade" placeholder="年级（如：学军中学·高二）">
+        <input id="npDorm" placeholder="宿舍（如：1号楼202）">
+        <button class="btn add" onclick="addPlayer()">+ 补录选手</button>
+      </div>
+    </div>
+
+    <div class="panel" id="tab-teams">
+      <h3>队伍管理</h3>
+      <div class="table-scroll">
+      <table><thead><tr><th style="width:50px">ID</th><th>队伍名称</th><th style="width:100px">队长</th><th style="width:60px">人数</th><th>项目名</th><th style="width:140px">项目状态</th><th style="width:110px">操作</th></tr></thead>
+      <tbody id="teamBody"></tbody></table>
+      </div>
+    </div>
+    <div class="panel" id="tab-pool">
+      <h3>等待池 <span class="hint" id="poolCount"></span></h3>
+      <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">组队截止后未组队的选手在此等待。可直接分配到已有队伍（随机补位），或手动联系后移除。</p>
+      <div class="table-scroll">
+      <table><thead><tr><th style="width:50px">ID</th><th style="width:110px">姓名</th><th style="width:110px">方向</th><th>备注</th><th style="width:130px">进入时间</th><th style="width:220px">分配队伍</th><th style="width:110px">操作</th></tr></thead>
+      <tbody id="poolBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-card" id="loginCard" style="display:none">
+    <h2>需要管理员权限</h2>
+    <p>请先在主站完成登录。管理员邮箱由 .env 的 <b style="color:var(--cyan)">ADMIN_EMAILS</b> 配置，登录后自动获得管理权限。</p>
+    <button class="btn save" onclick="location.href='/'">回主站登录</button>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const API = '/api';
+let TOKEN = localStorage.getItem('xjhack_token') || '';
+let DATA = null;
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  const r = await fetch(API + path, { ...opts, headers });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok && d.msg) throw new Error(d.msg);
+  return d;
+}
+function toast(html, warn = false) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (warn ? ' warn' : '');
+  el.innerHTML = html;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TS = {
+  recruiting: { label: '招募中', color: '#46F0C8' }, formed: { label: '已组队', color: '#8B7CFF' },
+  developing: { label: '开发中', color: '#FFB454' }, submitted: { label: '已提交', color: '#4ADE9B' },
+  judging: { label: '评审中', color: '#FF5C8A' }, finished: { label: '已结束', color: '#5C6B8F' },
+  disbanded: { label: '已解散', color: '#FF4D4D' }
+};
+
+async function load() {
+  DATA = await api('/admin/overview');
+  render();
+}
+function render() {
+  const claimed = DATA.claimed;
+  document.getElementById('stats').innerHTML = `
+    <div class="st"><b>${DATA.total}</b><span>选手总数</span></div>
+    <div class="st"><b>${claimed}</b><span>已认领</span></div>
+    <div class="st"><b>${(DATA.teams || []).length}</b><span>队伍</span></div>
+    <div class="st"><b>${(DATA.pool || []).length}</b><span>等待池</span></div>`;
+  renderSchedules(); renderAnnouncements(); renderClaims(); renderPlayers(); renderTeams(); renderPool();
+}
+function renderPool() {
+  const pool = DATA.pool || [];
+  document.getElementById('poolCount').textContent = `(${pool.length} 人待匹配)`;
+  document.getElementById('poolBody').innerHTML = pool.length ? pool.map(w => `
+    <tr data-id="${w.id}">
+      <td>${w.id}</td>
+      <td><b>${esc(w.name)}</b></td>
+      <td>${esc(w.role || '—')}</td>
+      <td style="max-width:260px">${esc(w.msg || '—')}</td>
+      <td>${esc(w.created_at || '')}</td>
+      <td><select class="f-team">${(DATA.teams || []).map(t => `<option value="${t.id}">#${t.id} ${esc(t.name)}（${t.member_count}人）</option>`).join('')}</select>
+        <button class="btn save" onclick="assignPool(${w.id}, this)">分配入队</button></td>
+      <td><div class="row-actions"><button class="btn danger" onclick="removePool(${w.id})">移除</button></div></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="empty">等待池是空的 🎉 大家都组上队了</td></tr>';
+}
+async function assignPool(id, btn) {
+  const tr = btn.closest('tr');
+  const teamId = tr.querySelector('.f-team').value;
+  if (!teamId) return toast('请先选择目标队伍', true);
+  btn.disabled = true;
+  try {
+    await api('/admin/pool/' + id + '/assign', { method: 'POST', body: JSON.stringify({ team_id: parseInt(teamId, 10) }) });
+    toast('已分配入队 ✓'); await load();
+  } catch (e) { toast(e.message, true); btn.disabled = false; }
+}
+async function removePool(id) {
+  if (!confirm('确认将该选手移出等待池？')) return;
+  try { await api('/admin/pool/' + id + '/remove', { method: 'POST' }); toast('已移除'); await load(); }
+  catch (e) { toast(e.message, true); }
+}
+function renderSchedules() {
+  document.getElementById('schBody').innerHTML = DATA.schedules.map(s => `
+    <tr data-id="${s.id}">
+      <td><input class="f-day" value="${esc(s.day)}"></td>
+      <td><input class="f-time" value="${esc(s.time)}"></td>
+      <td><input class="f-title" value="${esc(s.title)}"></td>
+      <td><input class="f-desc" value="${esc(s.desc)}"></td>
+      <td><select class="f-status">${['done','now','todo'].map(x => `<option value="${x}" ${s.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
+      <td><input class="f-sort" type="number" value="${s.sort}"></td>
+      <td><div class="row-actions"><button class="btn save" onclick="saveSchedule(${s.id}, this)">保存</button><button class="btn del" onclick="delSchedule(${s.id})">删</button></div></td>
+    </tr>`).join('') || '<tr><td colspan="7" class="empty">暂无赛程</td></tr>';
+}
+async function saveSchedule(id, btn) {
+  const tr = btn.closest('tr');
+  btn.disabled = true;
+  const body = {
+    day: tr.querySelector('.f-day').value, time: tr.querySelector('.f-time').value,
+    title: tr.querySelector('.f-title').value, desc: tr.querySelector('.f-desc').value,
+    status: tr.querySelector('.f-status').value, sort: tr.querySelector('.f-sort').value
+  };
+  try { await api('/admin/schedules/' + id, { method: 'PUT', body: JSON.stringify(body) }); toast('赛程已保存'); await load(); }
+  catch (e) { toast(e.message, true); btn.disabled = false; }
+}
+async function delSchedule(id) {
+  if (!confirm('确认删除该赛程节点？')) return;
+  await api('/admin/schedules/' + id, { method: 'DELETE' }); toast('已删除'); load();
+}
+async function addSchedule() {
+  await api('/admin/schedules', { method: 'POST', body: JSON.stringify({ day: 'DAY2', time: '00:00', title: '新节点', desc: '', status: 'todo', sort: 99 }) });
+  toast('已新增节点，请填写内容'); load();
+}
+
+function renderAnnouncements() {
+  document.getElementById('annBody').innerHTML = DATA.announcements.map(a => `
+    <tr data-id="${a.id}">
+      <td><input class="f-tag" value="${esc(a.tag)}" style="width:70px"></td>
+      <td><input class="f-title" value="${esc(a.title)}"></td>
+      <td><input class="f-body" value="${esc(a.body)}"></td>
+      <td><input class="f-time" value="${esc(a.time)}" style="width:80px"></td>
+      <td><input type="checkbox" class="f-pin" ${a.pinned ? 'checked' : ''}></td>
+      <td><div class="row-actions"><button class="btn save" onclick="saveAnn(${a.id}, this)">保存</button><button class="btn del" onclick="delAnn(${a.id})">删</button></div></td>
+    </tr>`).join('') || '<tr><td colspan="6" class="empty">暂无公告</td></tr>';
+}
+async function saveAnn(id, btn) {
+  const tr = btn.closest('tr');
+  btn.disabled = true;
+  const body = {
+    tag: tr.querySelector('.f-tag').value, title: tr.querySelector('.f-title').value,
+    body: tr.querySelector('.f-body').value, time: tr.querySelector('.f-time').value,
+    pinned: tr.querySelector('.f-pin').checked ? 1 : 0
+  };
+  try { await api('/admin/announcements/' + id, { method: 'PUT', body: JSON.stringify(body) }); toast('公告已保存'); await load(); }
+  catch (e) { toast(e.message, true); btn.disabled = false; }
+}
+async function delAnn(id) {
+  if (!confirm('确认删除该公告？')) return;
+  await api('/admin/announcements/' + id, { method: 'DELETE' }); toast('已删除'); load();
+}
+async function addAnnouncement() {
+  await api('/admin/announcements', { method: 'POST', body: JSON.stringify({ tag: '通知', title: '新公告', body: '', time: '', pinned: 0 }) });
+  toast('已新增公告，请填写内容'); load();
+}
+
+function renderClaims() {
+  document.getElementById('claimBody').innerHTML = DATA.claims.map(c => `
+    <tr>
+      <td>${c.id}</td>
+      <td>${esc(c.name || '—')} <span style="color:var(--text-3)">· ${esc(c.role || '')}</span></td>
+      <td style="font-family:var(--mono)">${esc(c.wechat || '—')}</td>
+      <td style="font-family:var(--mono)">${esc(c.email || '—')}</td>
+      <td><span class="badge ${esc(c.status)}">${esc(c.status)}</span></td>
+      <td style="font-family:var(--mono);color:var(--text-3)">${esc(c.created_at || '')}</td>
+      <td>${c.status === 'bound' ? `<button class="btn del" onclick="releaseClaim(${c.id})">撤销认领</button>` : ''}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="empty">暂无认领记录</td></tr>';
+}
+async function releaseClaim(id) {
+  if (!confirm('撤销后该选手将重新开放认领，确定？')) return;
+  try { await api('/admin/claims/' + id + '/release', { method: 'POST' }); toast('已撤销认领'); load(); }
+  catch (e) { toast(e.message, true); }
+}
+
+function renderPlayers() {
+  document.getElementById('playerBody').innerHTML = DATA.players?.length ? DATA.players.map(p => `
+    <tr data-id="${p.id}">
+      <td>${p.id}</td>
+      <td>${esc(p.name)}${p.self_registered ? ' <span class="badge pending" style="font-size:8px">注册</span>' : ''}</td>
+      <td><select class="f-role">${['开发','设计','产品','硬件','运营','教育','AI','其他',''].map(x => `<option value="${x}" ${p.role === x ? 'selected' : ''}>${x || '—'}</option>`).join('')}</select></td>
+      <td><input class="f-grade" value="${esc(p.grade)}"></td>
+      <td><input class="f-dorm" value="${esc(p.dorm)}"></td>
+      <td><select class="f-status">${['unclaimed','claimed'].map(x => `<option value="${x}" ${p.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
+      <td><div class="row-actions"><button class="btn save" onclick="savePlayer(${p.id}, this)">保存</button></div></td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">暂无选手，用下方表单补录或导入 CSV</td></tr>';
+}
+async function savePlayer(id, btn) {
+  const tr = btn.closest('tr');
+  btn.disabled = true;
+  const body = { role: tr.querySelector('.f-role').value, grade: tr.querySelector('.f-grade').value, dorm: tr.querySelector('.f-dorm').value, status: tr.querySelector('.f-status').value };
+  try { await api('/admin/players/' + id, { method: 'PUT', body: JSON.stringify(body) }); toast('选手已更新'); await load(); }
+  catch (e) { toast(e.message, true); btn.disabled = false; }
+}
+async function addPlayer() {
+  const g = id => document.getElementById(id).value.trim();
+  const body = { name: g('npName'), wechat: g('npWechat'), role: g('npRole'), grade: g('npGrade'), dorm: g('npDorm') };
+  if (!body.name) return toast('姓名必填', true);
+  try { await api('/admin/players', { method: 'POST', body: JSON.stringify(body) }); toast('选手已补录'); ['npName','npWechat','npRole','npGrade','npDorm'].forEach(i => document.getElementById(i).value = ''); load(); }
+  catch (e) { toast(e.message, true); }
+}
+
+function renderTeams() {
+  const list = DATA.teams || [];
+  document.getElementById('teamBody').innerHTML = list.length ? list.map(t => {
+    const s = TS[t.project_status] || TS.recruiting;
+    return `<tr data-id="${t.id}">
+      <td>${t.id}</td>
+      <td>${esc(t.name)}${t.slogan ? `<br><span style="color:var(--text-3);font-size:10px">${esc(t.slogan)}</span>` : ''}</td>
+      <td style="font-family:var(--mono);color:var(--text-2)">#${t.leader_id}</td>
+      <td>${t.member_count}</td>
+      <td>${esc(t.project_name || '—')}</td>
+      <td><select class="f-ts">${Object.keys(TS).map(k => `<option value="${k}" ${t.project_status === k ? 'selected' : ''}>${TS[k].label}</option>`).join('')}</select></td>
+      <td><div class="row-actions"><button class="btn save" onclick="saveTeamStatus(${t.id}, this)">保存</button></div></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" class="empty">暂无队伍</td></tr>';
+}
+async function saveTeamStatus(id, btn) {
+  const tr = btn.closest('tr');
+  btn.disabled = true;
+  const st = tr.querySelector('.f-ts').value;
+  if (st === 'disbanded' && !confirm(`确认解散「${tr.querySelector('td:nth-child(2)').textContent.trim()}」？`)) { btn.disabled = false; return; }
+  try { await api('/admin/teams/' + id + '/status', { method: 'PUT', body: JSON.stringify({ project_status: st }) }); toast('队伍状态已更新'); await load(); }
+  catch (e) { toast(e.message, true); btn.disabled = false; }
+}
+
+async function logout() {
+  await api('/auth/logout', { method: 'POST' }).catch(() => {});
+  localStorage.removeItem('xjhack_token');
+  location.href = '/';
+}
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('on');
+  });
+});
+
+(async () => {
+  try {
+    const d = await api('/me');
+    if (!d.authed) throw new Error('未登录');
+    if (!d.user.is_admin) throw new Error('无管理员权限');
+    document.getElementById('app').style.display = 'block';
+    await load();
+  } catch (e) {
+    document.getElementById('loginCard').style.display = 'block';
+    document.getElementById('loginCard').querySelector('p').innerHTML = `当前无法访问管理后台：${esc(e.message)}。<br>管理员邮箱由 .env 的 <b style="color:var(--cyan)">ADMIN_EMAILS</b> 配置，登录后自动获得管理权限。`;
+  }
+})();
+</script>
+</body>
+</html>

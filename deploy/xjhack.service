@@ -1,0 +1,26 @@
+# 学军黑客松赛事系统 · systemd 服务（生产部署）
+# 部署：复制到 /etc/systemd/system/xjhack.service，改 User 与路径后
+#   sudo systemctl daemon-reload && sudo systemctl enable --now xjhack
+
+[Unit]
+Description=学军中学黑客松赛事系统 (XJHACK)
+After=network.target
+
+[Service]
+Type=simple
+# 改成实际运行用户（建议非 root 的专用用户，如 xjhack）
+User=xjhack
+# 项目绝对路径
+WorkingDirectory=/opt/xjhack
+# node 22 二进制路径：which node
+ExecStart=/usr/bin/node server/index.js
+Restart=always
+RestartSec=3
+# 环境文件：生产配置放在项目目录的 .env（勿提交仓库）
+EnvironmentFile=/opt/xjhack/.env
+# 日志
+StandardOutput=append:/var/log/xjhack/out.log
+StandardError=append:/var/log/xjhack/err.log
+
+[Install]
+WantedBy=multi-user.target
