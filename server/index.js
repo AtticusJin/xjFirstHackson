@@ -136,14 +136,25 @@ app.get('/api/players', wrap(async (req, res) => {
   const likeRows = await store.all('SELECT target_id, COUNT(*) AS c FROM player_likes GROUP BY target_id');
   const likeMap = new Map(likeRows.map(r => [r.target_id, r.c]));
   let likedTodaySet = new Set();
+  let friendSet = new Set();
   if (me) {
     const mine = await store.all('SELECT target_id FROM player_likes WHERE user_id = ? AND like_date = ?', me.id, bjToday());
     likedTodaySet = new Set(mine.map(r => r.target_id));
+    if (me.player_id) {
+      const [likedByMe, likedMe] = await Promise.all([
+        store.all('SELECT target_id FROM player_likes WHERE user_id = ?', me.id),
+        store.all(`SELECT p.id FROM player_likes pl JOIN users u ON u.id = pl.user_id JOIN players p ON p.id = u.player_id WHERE pl.target_id = ?`, me.player_id)
+      ]);
+      const a = new Set(likedByMe.map(r => r.target_id));
+      const b = new Set(likedMe.map(r => r.id));
+      friendSet = new Set([...a].filter(x => b.has(x)));
+    }
   }
   res.json({ ok: true, players: list.map(p => {
     const pub = publicPlayer(p);
     pub.like_count = likeMap.get(p.id) || 0;
     pub.liked_today = likedTodaySet.has(p.id);
+    pub.is_friend = friendSet.has(p.id);
     if (me && p.contact) pub.contact = decContact(p.contact);
     return pub;
   }) });
@@ -178,47 +189,58 @@ app.post('/api/upload/avatar', requirePlayer, express.json({ limit: '6mb' }), wr
   res.json({ ok: true, url: '/uploads/avatars/' + name });
 }));
 
-/* ===== 站点点赞：登录用户一人一赞，游客按 IP 一赞（免登录可点） ===== */
+/* ===== 站点点赞：登录用户/游客每天各可点 5 次（按北京时间自然日） ===== */
 const clientIp = req => String(req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '').slice(0, 64);
+const SITE_LIKE_DAILY = 5;
 app.get('/api/site/likes', wrap(async (req, res) => {
-  const [u, i] = await Promise.all([
-    store.get('SELECT COUNT(*) AS c FROM site_likes'),
-    store.get('SELECT COUNT(*) AS c FROM site_like_ips')
+  const [a, b, c] = await Promise.all([
+    store.get('SELECT COUNT(*) AS n FROM site_likes'),
+    store.get('SELECT COUNT(*) AS n FROM site_like_ips'),
+    store.get('SELECT COUNT(*) AS n FROM site_like_log')
   ]);
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
-  let liked = false;
+  let remain = SITE_LIKE_DAILY;
   if (me) {
-    const mine = await store.get('SELECT id FROM site_likes WHERE user_id = ?', me.id);
-    liked = !!mine;
+    const t = await store.get('SELECT COUNT(*) AS n FROM site_like_log WHERE user_id = ? AND like_date = ?', me.id, bjToday());
+    remain = Math.max(0, SITE_LIKE_DAILY - (t ? t.n : 0));
   } else {
-    const mine = await store.get('SELECT id FROM site_like_ips WHERE ip = ?', clientIp(req));
-    liked = !!mine;
+    const ip = clientIp(req);
+    if (ip) {
+      const t = await store.get('SELECT COUNT(*) AS n FROM site_like_log WHERE ip = ? AND like_date = ?', ip, bjToday());
+      remain = Math.max(0, SITE_LIKE_DAILY - (t ? t.n : 0));
+    }
   }
-  res.json({ ok: true, count: (u ? u.c : 0) + (i ? i.c : 0), liked });
+  res.json({ ok: true, count: (a ? a.n : 0) + (b ? b.n : 0) + (c ? c.n : 0), remain });
 }));
 app.post('/api/site/like', wrap(async (req, res) => {
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
   const countAll = async () => {
-    const [u, i] = await Promise.all([
-      store.get('SELECT COUNT(*) AS c FROM site_likes'),
-      store.get('SELECT COUNT(*) AS c FROM site_like_ips')
+    const [a, b, c] = await Promise.all([
+      store.get('SELECT COUNT(*) AS n FROM site_likes'),
+      store.get('SELECT COUNT(*) AS n FROM site_like_ips'),
+      store.get('SELECT COUNT(*) AS n FROM site_like_log')
     ]);
-    return (u ? u.c : 0) + (i ? i.c : 0);
+    return (a ? a.n : 0) + (b ? b.n : 0) + (c ? c.n : 0);
   };
+  const t = bjToday();
   if (me) {
-    const mine = await store.get('SELECT id FROM site_likes WHERE user_id = ?', me.id);
-    if (mine) return res.json({ ok: true, count: await countAll(), liked: true, already: true });
-    try { await store.run('INSERT INTO site_likes (user_id) VALUES (?)', me.id); }
-    catch (e) { return res.json({ ok: true, count: await countAll(), liked: true, already: true }); }
-    return res.json({ ok: true, count: await countAll(), liked: true, already: false });
+    const used = await store.get('SELECT COUNT(*) AS n FROM site_like_log WHERE user_id = ? AND like_date = ?', me.id, t);
+    if (used && used.n >= SITE_LIKE_DAILY) {
+      return res.json({ ok: true, count: await countAll(), remain: 0, already: true, msg: '今天的 5 个赞已用完' });
+    }
+    await store.run('INSERT INTO site_like_log (user_id, like_date) VALUES (?, ?)', me.id, t);
+    const nu = await store.get('SELECT COUNT(*) AS n FROM site_like_log WHERE user_id = ? AND like_date = ?', me.id, t);
+    return res.json({ ok: true, count: await countAll(), remain: Math.max(0, SITE_LIKE_DAILY - nu.n), already: false });
   }
   const ip = clientIp(req);
   if (!ip) return res.status(400).json({ ok: false, msg: '无法识别访问来源' });
-  const mine = await store.get('SELECT id FROM site_like_ips WHERE ip = ?', ip);
-  if (mine) return res.json({ ok: true, count: await countAll(), liked: true, already: true });
-  try { await store.run('INSERT INTO site_like_ips (ip) VALUES (?)', ip); }
-  catch (e) { return res.json({ ok: true, count: await countAll(), liked: true, already: true }); }
-  res.json({ ok: true, count: await countAll(), liked: true, already: false });
+  const used = await store.get('SELECT COUNT(*) AS n FROM site_like_log WHERE ip = ? AND like_date = ?', ip, t);
+  if (used && used.n >= SITE_LIKE_DAILY) {
+    return res.json({ ok: true, count: await countAll(), remain: 0, already: true, msg: '今天的 5 个赞已用完' });
+  }
+  await store.run('INSERT INTO site_like_log (ip, like_date) VALUES (?, ?)', ip, t);
+  const nu = await store.get('SELECT COUNT(*) AS n FROM site_like_log WHERE ip = ? AND like_date = ?', ip, t);
+  res.json({ ok: true, count: await countAll(), remain: Math.max(0, SITE_LIKE_DAILY - nu.n), already: false });
 }));
 
 app.get('/api/schedules', wrap(async (req, res) => {

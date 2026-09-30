@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>学军首页黑客松 · XJHACK</title>
+<title>学军首届黑客松 · XJHACK</title>
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap">
 <style>
 :root{
@@ -42,6 +42,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .pc-like .pl-ico{color:var(--pink);font-size:12px}
 .pc-like:active{transform:scale(.88)}
 .pc-like.liked{border-color:rgba(255,92,138,.5);background:rgba(255,92,138,.1);color:var(--pink)}
+.friend-tag{font-size:12px;margin-left:4px;filter:drop-shadow(0 0 6px rgba(255,215,90,.7))}
 .d-like-bar{display:flex;align-items:center;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
 .d-like{display:inline-flex;align-items:center;gap:6px;background:rgba(255,92,138,.08);border:1px solid rgba(255,92,138,.4);color:var(--pink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:var(--mono);transition:all .15s}
 .d-like .pl-ico{font-size:15px}
@@ -357,7 +358,7 @@ footer{margin-top:28px;text-align:center;font-family:var(--mono);font-size:9px;c
 <body>
 <div class="wrap">
   <div class="topbar">
-    <div class="brand"><span class="logo">XJ</span><span>学军首页<span class="grad">黑客松</span></span></div>
+    <div class="brand"><span class="logo">XJ</span><span>学军首届<span class="grad">黑客松</span></span></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="like-btn" id="likeBtn" onclick="toggleLike()" title="为黑客松点赞">
         <span class="like-ico" id="likeIco">♡</span>
@@ -496,31 +497,31 @@ async function refresh() {
   renderStats(); renderGrid(); renderTimeline(); renderAnnounce();
 }
 
-/* ===== 站点点赞 ===== */
-let likeCount = 0, liked = false;
+/* ===== 站点点赞：每人每天 5 次 ===== */
+let likeCount = 0, likeRemain = 5;
 async function loadLikes() {
   try {
     const d = await api('/site/likes');
-    likeCount = d.count || 0; liked = !!d.liked;
+    likeCount = d.count || 0; likeRemain = (d.remain === undefined ? 5 : d.remain);
     const btn = document.getElementById('likeBtn');
     const num = document.getElementById('likeNum');
     const ico = document.getElementById('likeIco');
     if (num) num.textContent = likeCount;
-    if (ico) ico.textContent = liked ? '♥' : '♡';
-    if (btn) btn.classList.toggle('liked', liked);
+    if (ico) ico.textContent = likeRemain > 0 ? '♡' : '♥';
+    if (btn) btn.classList.toggle('liked', likeRemain <= 0);
   } catch (e) { /* 接口暂不可用则不渲染 */ }
 }
 async function toggleLike() {
-  if (liked) { toast('已经为黑客松点过赞啦 ♥'); return; }
+  if (likeRemain <= 0) { toast('今天的 5 个赞用完啦，明天再来 ♥'); return; }
   try {
     const d = await api('/site/like', { method: 'POST' });
     if (d.ok) {
-      likeCount = d.count; liked = true;
+      likeCount = d.count; likeRemain = d.remain;
       document.getElementById('likeNum').textContent = likeCount;
-      document.getElementById('likeIco').textContent = '♥';
-      document.getElementById('likeBtn').classList.add('liked');
+      document.getElementById('likeIco').textContent = likeRemain > 0 ? '♡' : '♥';
+      document.getElementById('likeBtn').classList.toggle('liked', likeRemain <= 0);
       burstLike();
-      toast('点赞成功 ♥');
+      toast(`点赞成功 ♥ 今天还剩 ${likeRemain} 次`);
     }
   } catch (e) { toast('点赞失败：' + esc(e.message), true); }
 }
@@ -660,7 +661,7 @@ function renderGrid() {
       <div class="pc-top">
         ${p.avatar ? `<img class="pc-avatar" src="${esc(p.avatar)}" alt="">` : `<div class="pc-avatar" style="background:var(--card);border:1px solid var(--line)"></div>`}
         <div class="pc-id">
-          <div class="pc-name">${esc(p.name)}</div>
+          <div class="pc-name">${esc(p.name)}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
           ${p.nickname ? `<div class="pc-handle">@${esc(p.nickname)}</div>` : ''}
         </div>
         <div class="pc-roles">${roleList(p.role).map(r => `<span class="pc-role">${esc(r)}</span>`).join('') || '<span class="pc-role">未标注</span>'}</div>
@@ -715,7 +716,7 @@ function openPlayerDetail(pid) {
     <div class="d-card">
       <div class="d-top">
         ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : `<div style="width:64px;height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);flex:none"></div>`}
-        <div class="d-id"><b>${esc(p.name)}</b>${p.nickname ? `<span class="d-nick">@${esc(p.nickname)}</span>` : ''}</div>
+        <div class="d-id"><b>${esc(p.name)}</b>${p.nickname ? `<span class="d-nick">@${esc(p.nickname)}</span>` : ''}${p.is_friend ? '<span class="friend-tag big" title="你们互相点赞，互为好友">💛 互为好友</span>' : ''}</div>
         <div class="d-roles">${roleList(p.role).map(r => `<span class="d-role">${esc(r)}</span>`).join('') || '<span class="d-role">未标注</span>'}</div>
       </div>
       ${(p.grade || tags.length) ? `<div class="d-meta">${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}${tags.map(t => `<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
@@ -867,6 +868,15 @@ function renderMe() {
     </div>
     ${p ? '' : `<div class="me-section"><button class="btn primary btn-block" onclick="showTab('home')">去认领 / 注册身份</button></div>`}
     ${ME.user.is_admin ? `<div class="me-section"><button class="btn primary btn-block" onclick="location.href='/admin.html'">⚙ 管理后台</button></div>` : ''}
+    ${(() => { const friends = players.filter(x => x.is_friend); return friends.length ? `<div class="me-section"><div class="section-title" style="margin-top:0">我的好友 <span class="n">${friends.length}</span></div>
+      <div class="me-list">${friends.map(f => `
+        <div class="ann t-member" onclick="openPlayerDetail(${f.id})"><div class="a-top">
+          ${f.avatar ? `<img src="${esc(f.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : ''}
+          <span class="a-title">${esc(f.name)}</span>
+          ${f.grade ? `<span class="d-tag">${esc(f.grade)}</span>` : ''}
+          ${roleList(f.role).slice(0, 2).map(r => `<span class="d-role">${esc(r)}</span>`).join('')}
+          <span class="a-tag" style="background:rgba(255,215,90,.1);color:var(--amber)">💛 好友</span>
+        </div></div>`).join('')}</div></div>` : ''; })()}
     <div class="me-section"><div class="section-title" style="margin-top:0">我的队伍</div><div id="myTeams"></div></div>
     <div class="me-section"><div class="section-title" style="margin-top:0">账号</div>
       <div class="me-list"><div class="ann"><div class="a-top"><span class="a-tag">EMAIL</span><span class="a-title">${esc(ME.user.email)}</span></div><div class="a-body">登录选手可查看彼此联系方式以组队沟通；撤下资料后不再展示。</div></div></div>
