@@ -145,7 +145,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .pc-avatar{width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--line);flex:none}
 .pc-name{font-size:14px;font-weight:700;line-height:1.3;overflow-wrap:break-word}
 .pc-handle{font-family:var(--mono);font-size:10px;color:var(--text-3);margin-top:2px;overflow-wrap:break-word}
-.pc-intro{font-size:11px;color:var(--text-2);margin-top:8px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:0;flex:none}
+.pc-intro{font-size:11px;color:var(--text-2);margin-top:8px;line-height:17px;height:34px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:0;flex:none}
 .pc-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;max-height:34px;overflow:hidden}
 .pc-tags span{font-size:9px;color:var(--cyan);background:rgba(70,240,200,.08);border:1px solid rgba(70,240,200,.22);padding:2px 7px;border-radius:5px;font-family:var(--mono)}
 .pc-status{font-size:10px;color:var(--text-3);margin-top:10px;font-family:var(--mono)}
@@ -473,6 +473,7 @@ function toast(html, warn = false) {
   setTimeout(() => el.remove(), 3200);
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nm = s => String(s ?? '').replace(/\s+/g, ' ').trim();
 const ROLE_COLOR = { '开发':'#46F0C8', '设计':'#8B7CFF', '产品':'#FFB454', '硬件':'#FF5C8A', '运营':'#4ADE9B', '教育':'#FFB454', 'AI':'#FF5C8A', '其他':'#9AA8C7' };
 const AV_STOCK = ['https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/TBJTb2Mzcoa1wixbugXcLYSKn5g','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/QIirbTnqcoPjOwx8ESucKgoZnui','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/NEFabViD5owsKUxFrT1c2yAbnPf','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/W01RbY6wHoabHkx2qwFc5wa7nCh','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/HeoPbEO2oocfMhxanQDcINV1np0','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/UcgobADHOoVJUHxYIhpcl1BZnFg','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/ShoobNfU8ovuWvxhIt2cNVvJnBd','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/AFcbbmEymo7q5fxHkPBcs3gXnTd'];
 
@@ -669,8 +670,8 @@ function renderGrid() {
       <div class="pc-top">
         ${p.avatar ? `<img class="pc-avatar" src="${esc(p.avatar)}" alt="" loading="lazy" decoding="async">` : `<div class="pc-avatar" style="background:var(--card);border:1px solid var(--line)"></div>`}
         <div class="pc-id">
-          <div class="pc-name">${esc(p.name)}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
-          ${p.nickname ? `<div class="pc-handle">@${esc(p.nickname)}</div>` : ''}
+          <div class="pc-name">${esc(nm(p.name))}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
+          ${p.nickname ? `<div class="pc-handle">@${esc(nm(p.nickname))}</div>` : ''}
         </div>
         <div class="pc-roles">${roleList(p.role).map(r => `<span class="pc-role">${esc(r)}</span>`).join('') || '<span class="pc-role">未标注</span>'}</div>
       </div>
@@ -724,7 +725,7 @@ function openPlayerDetail(pid) {
     <div class="d-card">
       <div class="d-top">
         ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : `<div style="width:64px;height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);flex:none"></div>`}
-        <div class="d-id"><b>${esc(p.name)}</b>${p.nickname ? `<span class="d-nick">@${esc(p.nickname)}</span>` : ''}${p.is_friend ? '<span class="friend-tag big" title="你们互相点赞，互为好友">💛 互为好友</span>' : ''}</div>
+        <div class="d-id"><b>${esc(nm(p.name))}</b>${p.nickname ? `<span class="d-nick">@${esc(nm(p.nickname))}</span>` : ''}${p.is_friend ? '<span class="friend-tag big" title="你们互相点赞，互为好友">💛 互为好友</span>' : ''}</div>
         <div class="d-roles">${roleList(p.role).map(r => `<span class="d-role">${esc(r)}</span>`).join('') || '<span class="d-role">未标注</span>'}</div>
       </div>
       ${(p.grade || tags.length) ? `<div class="d-meta">${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}${tags.map(t => `<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
