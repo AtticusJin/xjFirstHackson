@@ -241,7 +241,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .me-card .who{flex:1;min-width:0}
 .me-card .who b{font-size:18px}
 .me-card .who .role{font-family:var(--mono);font-size:11px;color:var(--amber);margin-top:4px;display:block}
-.me-card .who p{font-size:11px;color:var(--text-2);margin-top:6px;line-height:1.7}
+.me-card .who p{font-size:11px;color:var(--text-2);margin-top:6px;line-height:1.7;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .me-card .who .tag-free{display:inline-block;font-family:var(--mono);font-size:9px;color:var(--cyan);border:1px solid rgba(70,240,200,.3);padding:1px 7px;border-radius:20px;margin-top:6px}
 .me-section{margin-top:18px}
 .me-list{display:flex;flex-direction:column;gap:10px}
@@ -872,7 +872,7 @@ function renderMe() {
       <div class="who">
         ${p ? `<b>${esc(p.name)}</b>${p.self_registered ? ' <span class="tag-free">新注册选手</span>' : ''}
           <span class="role">${esc(roleList(p.role).join(' / ') || '未标注方向')}${p.grade ? ' · ' + esc(p.grade) : ''}</span>
-          <p>${esc(p.intro || '还没有自我介绍，去完善你的资料吧。')}</p>`
+          <p title="${esc(p.intro || '')}">${esc(p.intro || '还没有自我介绍，去完善你的资料吧。')}</p>`
         : `<b>已登录</b><p>当前账号（${esc(ME.user.email)}）还没有选手身份，请先认领或注册。</p>`}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -1293,9 +1293,9 @@ function drawShareCard(p, noAvatar) {
   })();
   const yName = 470, yNick = 512, yRole = 560;
   let y = 610;
-  if (tags.length) y += Math.ceil(tags.length / 3) * 48 + 6;
-  const yIntro = y + (introLines.length ? 8 : 0);
-  y = yIntro + introLines.length * 38;
+  if (tags.length) y += Math.ceil(tags.length / 3) * 52 + 6;
+  const yIntro = y + (introLines.length ? 24 : 0);
+  y = yIntro + introLines.length * 42;
   const H = y + 200;
   c.width = W; c.height = H;
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -1324,15 +1324,15 @@ function drawShareCard(p, noAvatar) {
         const r = Math.floor(i / 3), ci = i % 3;
         const tw = ctx.measureText(t).width + 28;
         const bx = startX + ci * colW + (colW - tw) / 2;
-        const by = 610 + r * 48;
+        const by = 610 + r * 52;
         ctx.fillStyle = 'rgba(70,240,200,.08)'; ctx.strokeStyle = 'rgba(70,240,200,.35)'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.roundRect(bx, by, tw, 38, 9); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#70f8d8'; ctx.textAlign = 'center'; ctx.fillText(t, bx + tw / 2, by + 26);
+        ctx.beginPath(); ctx.roundRect(bx, by, tw, 40, 9); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#70f8d8'; ctx.textAlign = 'center'; ctx.fillText(t, bx + tw / 2, by + 27);
       });
     }
     if (introLines.length) {
       ctx.fillStyle = '#aab4cc'; ctx.font = '24px sans-serif'; ctx.textAlign = 'left';
-      introLines.forEach((l, i) => ctx.fillText(l, 70, yIntro + i * 38));
+      introLines.forEach((l, i) => ctx.fillText(l, 70, yIntro + i * 42));
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 34px monospace';
