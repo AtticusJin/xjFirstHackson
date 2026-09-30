@@ -130,6 +130,36 @@ const wrap = fn => (req, res) => {
 
 /* ===== 公开：选手名单 / 赛程 / 公告 ===== */
 const bjToday = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+// 头像代理：把外链头像转为同源字节流，避免前端 canvas 跨域污染（分享卡绘制用）
+const isPrivateIp = (ip) => {
+  if (!ip) return true;
+  if (ip.includes(':')) return false; // IPv6 直接放行（公网图床基本是 v4/v6 域名）
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(isNaN)) return true;
+  const [a, b] = parts;
+  return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+};
+app.get('/api/avatar-proxy', wrap(async (req, res) => {
+  const url = String(req.query.url || '');
+  if (!/^https?:\/\//.test(url)) return res.status(400).json({ ok: false, err: 'bad url' });
+  let u;
+  try { u = new URL(url); } catch { return res.status(400).json({ ok: false, err: 'bad url' }); }
+  if (!['https:', 'http:'].includes(u.protocol)) return res.status(400).json({ ok: false, err: 'bad protocol' });
+  try {
+    const dns = require('node:dns/promises');
+    const ips = await dns.lookup(u.hostname, { all: true });
+    if (!ips.length || ips.some(i => isPrivateIp(i.address))) return res.status(400).json({ ok: false, err: 'blocked host' });
+  } catch { return res.status(400).json({ ok: false, err: 'blocked host' }); }
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return res.status(502).json({ ok: false, err: 'upstream ' + r.status });
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.set('Content-Type', r.headers.get('content-type') || 'image/*');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(buf);
+  } catch { res.status(504).json({ ok: false, err: 'timeout' }); }
+}));
+
 app.get('/api/players', wrap(async (req, res) => {
   const list = await store.all('SELECT * FROM players WHERE retired != 1 AND (is_demo IS NULL OR is_demo != 1) ORDER BY id');
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));

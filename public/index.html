@@ -1256,6 +1256,10 @@ function rmTag(i) {
 function loadImg(url, cross) {
   return new Promise((res, rej) => { const i = new Image(); if (cross) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = url; });
 }
+function loadImgDataUrl(url) {
+  return fetch('/api/avatar-proxy?url=' + encodeURIComponent(url)).then(r => { if (!r.ok) throw new Error('proxy'); return r.blob(); })
+    .then(b => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(b); }));
+}
 function shareCard() {
   const p = ME && ME.user && ME.user.player;
   if (!p) return toast('请先登录', true);
@@ -1267,7 +1271,7 @@ function shareCard() {
     <div class="btn-row"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveShareCard()">⬇ 保存到相册</button></div>`);
   setTimeout(() => drawShareCard(p), 60);
 }
-function drawShareCard(p) {
+function drawShareCard(p, noAvatar) {
   const c = document.getElementById('shareCanvas'); if (!c) return;
   const ctx = c.getContext('2d'), W = c.width, H = c.height;
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -1301,6 +1305,7 @@ function drawShareCard(p) {
     ctx.fillStyle = '#7fe9cf'; ctx.font = '26px sans-serif';
     ctx.fillText(String(p.grade || '') + (p.grade ? ' · ' : '') + (roleList(p.role).join(' / ') || '未标注方向'), cx, 560);
     const tags = (p.tags || '').split(/[\s,，]+/).filter(Boolean).slice(0, 6);
+    let tagBottom = 660;
     if (tags.length) {
       let y0 = 610, col = 0, x0 = cx - 210;
       ctx.font = '22px sans-serif';
@@ -1313,6 +1318,7 @@ function drawShareCard(p) {
         ctx.fillStyle = '#70f8d8'; ctx.textAlign = 'center'; ctx.fillText(t, bx + tw / 2, y0 + 24);
         col++;
       });
+      tagBottom = y0 + 44;
     }
     const intro = String(p.intro || '');
     if (intro) {
@@ -1326,7 +1332,7 @@ function drawShareCard(p) {
       }
       if (lines.length < mw && cur) lines.push(cur);
       if (lines.length > mw) { lines.length = mw; lines[mw - 1] = lines[mw - 1].replace(/.{2}$/, '…'); }
-      let iy = tags.length ? y0 + 44 : 660;
+      let iy = tagBottom;
       lines.forEach(l => { ctx.fillText(l, 70, iy); iy += 36; });
     }
     ctx.textAlign = 'center';
@@ -1335,18 +1341,25 @@ function drawShareCard(p) {
     ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
     ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 104);
   };
-  if (p.avatar) loadImg(p.avatar, true).then(finish).catch(() => loadImg(p.avatar, false).then(finish).catch(() => finish(null)));
-  else finish(null);
+  if (!noAvatar && p.avatar) {
+    if (String(p.avatar).startsWith('data:')) loadImg(p.avatar, false).then(finish).catch(() => finish(null));
+    else loadImgDataUrl(p.avatar).then(u => loadImg(u, false)).then(finish).catch(() => finish(null));
+  } else finish(null);
 }
 function saveShareCard() {
   const c = document.getElementById('shareCanvas'); if (!c) return;
-  try {
-    const a = document.createElement('a');
-    a.href = c.toDataURL('image/png');
-    a.download = 'XJHACK-名片-' + String(ME.user.player.name || '') + '.png';
-    document.body.appendChild(a); a.click(); a.remove();
-    toast('名片已生成，可在相册/下载中查看');
-  } catch (e) { toast('生成失败，请重试', true); }
+  const p = ME.user.player;
+  let url;
+  try { url = c.toDataURL('image/png'); }
+  catch (e) {
+    drawShareCard(p, true);
+    try { url = c.toDataURL('image/png'); } catch (e2) { return toast('生成失败，请重试', true); }
+  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'XJHACK-名片-' + String(p.name || '') + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('名片已生成，可在相册/下载中查看');
 }
 function openEditProfile() {
   if (!ME || !ME.user.player) return toast('请先登录', true);
