@@ -652,6 +652,8 @@ function renderGrid() {
     const hay = `${p.name} ${p.nickname || ''} ${p.role || ''} ${p.tags || ''}`.toLowerCase();
     return hay.includes(kw);
   }) : players;
+  /* 金熙林卡片置顶展示 */
+  list.sort((a, b) => ((b.name === '金熙林') - (a.name === '金熙林')) || 0);
   if (kw) {
     hit.style.display = 'block';
     hit.innerHTML = `找到 <b>${list.length}</b> 位匹配「<b>${esc(q.trim())}</b>」${list.length ? '，点击卡片认领' : '——不在名单？试试「注册参赛」'}`;
