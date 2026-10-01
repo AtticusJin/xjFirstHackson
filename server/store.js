@@ -121,6 +121,15 @@ CREATE TABLE IF NOT EXISTS team_requests (
   status TEXT DEFAULT 'pending',
   created_at TEXT DEFAULT (datetime('now','localtime'))
 );
+CREATE TABLE IF NOT EXISTS team_invites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id INTEGER NOT NULL,
+  player_id INTEGER NOT NULL,
+  leader_id INTEGER NOT NULL,
+  msg TEXT,
+  status TEXT DEFAULT 'pending',
+  created_at TEXT DEFAULT (datetime('now','localtime'))
+);
 CREATE TABLE IF NOT EXISTS waiting_pool (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   player_id INTEGER NOT NULL UNIQUE,
@@ -202,6 +211,10 @@ const DDL_PG = [
     id SERIAL PRIMARY KEY, team_id INTEGER NOT NULL, player_id INTEGER NOT NULL, msg TEXT,
     status TEXT DEFAULT 'pending',
     created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `,
+  `CREATE TABLE IF NOT EXISTS team_invites (
+    id SERIAL PRIMARY KEY, team_id INTEGER NOT NULL, player_id INTEGER NOT NULL, leader_id INTEGER NOT NULL, msg TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT DEFAULT (to_char(now() AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS'))) `,
   `CREATE TABLE IF NOT EXISTS waiting_pool (
     id SERIAL PRIMARY KEY, player_id INTEGER NOT NULL UNIQUE, msg TEXT,
     status TEXT DEFAULT 'waiting', note TEXT,
@@ -256,7 +269,7 @@ async function migrate() {
 }
 
 /* ===== 数据导入：优先 export.json（真实数据快照），其次内置 seed ===== */
-const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'waiting_pool', 'site_likes', 'site_like_ips', 'site_like_log', 'player_likes', 'site_views', 'player_views'];
+const TABLES = ['players', 'users', 'claims', 'schedules', 'announcements', 'teams', 'team_members', 'team_requests', 'team_invites', 'waiting_pool', 'site_likes', 'site_like_ips', 'site_like_log', 'player_likes', 'site_views', 'player_views'];
 
 async function importExportJson() {
   const f = path.join(__dirname, '..', 'data', 'export.json');

@@ -742,11 +742,14 @@ app.get('/api/teams/mine', requireParticipant, wrap(async (req, res) => {
   const joined = await store.all('SELECT t.* FROM teams t JOIN team_members m ON m.team_id = t.id WHERE m.player_id = ? AND t.leader_id != ? AND t.status != ? ORDER BY t.id DESC', pid, pid, 'disbanded');
   const reqs = await store.all('SELECT r.*, t.name AS team_name, t.project_status FROM team_requests r JOIN teams t ON t.id = r.team_id WHERE r.player_id = ? AND r.status = ? ORDER BY r.id DESC', pid, 'pending');
   const results = await store.all('SELECT r.id AS request_id, r.status, t.name AS team_name FROM team_requests r JOIN teams t ON t.id = r.team_id WHERE r.player_id = ? AND r.status IN (?, ?) ORDER BY r.id DESC LIMIT 10', pid, 'accepted', 'rejected');
+  const invites = await store.all(`SELECT i.id, i.team_id, i.msg, i.status, i.created_at, t.name AS team_name, t.project_status, t.slogan, l.name AS leader_name
+    FROM team_invites i JOIN teams t ON t.id = i.team_id LEFT JOIN players l ON l.id = i.leader_id
+    WHERE i.player_id = ? AND i.status = ? AND t.status != ? ORDER BY i.id DESC`, pid, 'pending', 'disbanded');
   res.json({
     ok: true,
     led: await Promise.all(led.map(t => teamDetail(t, pid))),
     joined: await Promise.all(joined.map(t => teamDetail(t, pid))),
-    pending: reqs, results
+    pending: reqs, results, invites
   });
 }));
 
@@ -797,6 +800,50 @@ app.post('/api/teams/:id/join', requireParticipant, wrap(async (req, res) => {
   const msg = String(req.body?.msg || '').trim();
   await store.run('INSERT INTO team_requests (team_id, player_id, msg) VALUES (?, ?, ?)', team.id, req.user.player_id, msg);
   res.json({ ok: true, msg: '申请已提交，等待队长确认' });
+}));
+
+/* 队长主动招募队员 */
+app.post('/api/teams/:id/invite', requireParticipant, wrap(async (req, res) => {
+  const team = await store.get("SELECT * FROM teams WHERE id = ? AND status != 'disbanded'", parseInt(req.params.id, 10));
+  if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在或已解散' });
+  if (team.leader_id !== req.user.player_id) return res.status(403).json({ ok: false, msg: '只有队长可以发起招募' });
+  if (team.project_status === 'finished' || team.project_status === 'judging') return res.status(409).json({ ok: false, msg: '队伍已进入项目阶段，暂不招募' });
+  const target = parseInt(req.body?.player_id || 0, 10);
+  if (!target) return res.status(400).json({ ok: false, msg: '缺少招募对象' });
+  if (target === req.user.player_id) return res.status(409).json({ ok: false, msg: '不能招募自己' });
+  const tp = await store.get('SELECT * FROM players WHERE id = ?', target);
+  if (!tp) return res.status(404).json({ ok: false, msg: '选手不存在' });
+  const tInTeam = await store.get('SELECT 1 FROM team_members m JOIN teams t ON t.id = m.team_id WHERE m.player_id = ? AND t.status != ?', target, 'disbanded');
+  if (tInTeam) return res.status(409).json({ ok: false, msg: '对方已在一支队伍中，无法招募' });
+  const dupInv = await store.get("SELECT 1 FROM team_invites WHERE team_id = ? AND player_id = ? AND status = 'pending'", team.id, target);
+  if (dupInv) return res.status(409).json({ ok: false, msg: '已向对方发出过招募，等待回应' });
+  const msg = String(req.body?.msg || '').trim();
+  await store.run('INSERT INTO team_invites (team_id, player_id, leader_id, msg) VALUES (?, ?, ?, ?)', team.id, target, req.user.player_id, msg);
+  res.json({ ok: true, msg: '招募邀请已发出' });
+}));
+
+/* 被招募者处理邀请 */
+app.post('/api/teams/invites/:id', requireParticipant, wrap(async (req, res) => {
+  const inv = await store.get("SELECT * FROM team_invites WHERE id = ? AND player_id = ? AND status = 'pending'", parseInt(req.params.id, 10), req.user.player_id);
+  if (!inv) return res.status(404).json({ ok: false, msg: '邀请不存在或已处理' });
+  const team = await store.get("SELECT * FROM teams WHERE id = ? AND status != 'disbanded'", inv.team_id);
+  if (!team) return res.status(404).json({ ok: false, msg: '队伍已解散，邀请失效' });
+  const action = req.body?.action;
+  if (action === 'accept') {
+    const already = await store.get('SELECT 1 FROM team_members m JOIN teams t ON t.id = m.team_id WHERE m.player_id = ? AND t.status != ?', req.user.player_id, 'disbanded');
+    if (already) return res.status(409).json({ ok: false, msg: '你已在一支队伍中，无法接受邀请' });
+    await store.run('INSERT INTO team_members (team_id, player_id) VALUES (?, ?)', team.id, req.user.player_id);
+    await store.run("UPDATE team_invites SET status = 'accepted' WHERE id = ?", inv.id);
+    // 入队后：自己的 pending 申请与其余 pending 招募邀请全部作废
+    await store.run("UPDATE team_requests SET status = 'expired' WHERE player_id = ? AND status = 'pending'", req.user.player_id);
+    await store.run("UPDATE team_invites SET status = 'expired' WHERE player_id = ? AND status = 'pending' AND id != ?", req.user.player_id, inv.id);
+    return res.json({ ok: true, msg: '已接受招募，加入队伍' });
+  }
+  if (action === 'reject') {
+    await store.run("UPDATE team_invites SET status = 'rejected' WHERE id = ?", inv.id);
+    return res.json({ ok: true, msg: '已拒绝招募' });
+  }
+  res.status(400).json({ ok: false, msg: '无效操作（accept / reject）' });
 }));
 
 app.post('/api/teams/:id/requests/:rid', requireParticipant, wrap(async (req, res) => {

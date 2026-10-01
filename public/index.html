@@ -824,6 +824,8 @@ function openPlayerDetail(pid) {
       <div class="d-intro">${p.intro ? linkify(p.intro) : '暂无自我介绍'}</div>
       ${links}
       ${contactBox}
+      ${(ME && ME.user.player && ME.user.player.identity === 'participant' && p.id !== ME.user.player.id) ? `
+      <div class="btn-row" style="margin-top:12px"><button class="btn primary sm" onclick="recruitPlayer(${p.id}, '${esc(String(p.name).replace(/'/g, "\\'"))}')">🤝 招募进我的队伍</button></div>` : ''}
       <div class="d-like-bar">
         <button class="d-like${p.liked_today ? ' liked' : ''}" data-plbtn="${p.id}" onclick="togglePlayerLike(${p.id})">
           <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span> <span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
@@ -1148,6 +1150,13 @@ async function renderMyTeams() {
     if (!d.led.length && !d.joined.length) html += '<div class="empty">还没加入任何队伍<br>去「组队」广场看看，或创建一支属于你的队伍。</div>';
     d.led.forEach(t => html += card(t));
     d.joined.forEach(t => html += card(t));
+    if (d.invites && d.invites.length) {
+      html += `<div class="ann" style="margin-top:10px"><div class="a-top"><span class="a-tag" style="background:rgba(255,92,138,.12);color:var(--pink);border-color:rgba(255,92,138,.4)">INVITE</span><span class="a-title">收到的招募邀请（${d.invites.length}）</span></div>
+        <div class="a-body">${d.invites.map(v => `<div style="padding:5px 0;border-bottom:1px dashed var(--line)"><div><b>${esc(v.team_name)}</b> ${v.slogan ? '<span style="color:var(--text-3)">· ' + esc(v.slogan) + '</span>' : ''} <span style="color:var(--text-3)">（${esc(TS[v.project_status]?.label || '')}）</span></div>
+          ${v.msg ? `<div style="color:var(--text-2);font-size:12px;margin:3px 0">💬 ${esc(v.msg)}</div>` : ''}
+          <div style="font-size:11px;color:var(--text-3);margin:2px 0 6px">队长 ${esc(v.leader_name || '—')} 向 TA 发出了邀请</div>
+          <div style="display:flex;gap:8px"><button class="btn sm primary" onclick="respondInvite(${v.id}, 'accept')">接受</button><button class="btn sm ghost" onclick="respondInvite(${v.id}, 'reject')">拒绝</button></div></div>`).join('')}</div></div>`;
+    }
     if (d.pending.length) {
       html += `<div class="ann" style="margin-top:10px"><div class="a-top"><span class="a-tag">PENDING</span><span class="a-title">等待确认的申请（${d.pending.length}/3）</span></div>
         <div class="a-body">${d.pending.map(r => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0"><span>${esc(r.team_name)}（${esc(TS[r.project_status]?.label || '')}）</span><button class="btn ghost sm" onclick="cancelApply(${r.team_id}, ${r.id})">撤销</button></div>`).join('')}</div></div>`;
@@ -1481,6 +1490,40 @@ function loadImgDataUrl(url) {
   return fetch('/api/avatar-proxy?url=' + encodeURIComponent(url)).then(r => { if (!r.ok) throw new Error('proxy'); return r.blob(); })
     .then(b => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(b); }));
 }
+/* ===== 队长主动招募 ===== */
+async function recruitPlayer(pid, pname) {
+  if (!ME || !ME.user.player) return toast('请先登录', true);
+  let mine;
+  try { mine = await api('/teams/mine'); } catch (e) { return err(e.message); }
+  if (!mine.led || !mine.led.length) return toast('你还不是队长，无法发起招募', true);
+  const team = mine.led[0];
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>🤝 招募 ${esc(pname)}</h3>
+    <p class="sub">邀请 TA 加入你的队伍「${esc(team.name)}」</p>
+    <div class="field"><label>想对 TA 说的话（可选）</label><textarea id="recruitMsg" rows="3" placeholder="例如：我们队正在做 AI 应用，缺一个会前端的同学，很看好你！"></textarea></div>
+    <div class="btn-row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="doRecruit(${team.id}, ${pid})">发出招募</button></div>`);
+}
+async function doRecruit(tid, pid) {
+  const msg = (document.getElementById('recruitMsg') || {}).value || '';
+  try {
+    const d = await api(`/teams/${tid}/invite`, { method: 'POST', body: JSON.stringify({ player_id: pid, msg: msg.trim() }) });
+    toast(d.msg || '招募邀请已发出'); closeModal();
+  } catch (e) { err(e.message); }
+}
+async function respondInvite(iid, action) {
+  if (action === 'accept') {
+    askConfirm('接受招募', '接受后将直接加入该队伍，你已有的其他申请与邀请将自动失效。确定接受吗？', '接受', `doRespondInvite(${iid}, 'accept')`);
+  } else {
+    askConfirm('拒绝招募', '确定拒绝这支队伍的招募吗？', '拒绝', `doRespondInvite(${iid}, 'reject')`);
+  }
+}
+async function doRespondInvite(iid, action) {
+  try {
+    const d = await api(`/teams/invites/${iid}`, { method: 'POST', body: JSON.stringify({ action }) });
+    toast(d.msg); renderMyTeams(); updateBadge();
+  } catch (e) { err(e.message); }
+}
 function shareCard() {
   const p = ME && ME.user && ME.user.player;
   if (!p) return toast('请先登录', true);
@@ -1596,6 +1639,147 @@ function saveShareCard() {
   a.download = 'XJHACK-名片-' + String(p.name || '') + '.png';
   document.body.appendChild(a); a.click(); a.remove();
   toast('名片已生成，可在相册/下载中查看');
+}
+/* ===== 队伍分享 ===== */
+let _shareTeam = null;
+function shareTeamCard(tid) {
+  const t = teams.find(x => x.id === tid);
+  if (!t) return toast('队伍不存在', true);
+  _shareTeam = t;
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>分享队伍</h3>
+    <p class="sub">生成队伍招募卡片 · 长按图片或点下方按钮保存到相册</p>
+    <div class="share-preview"><canvas id="shareCanvas" width="750" height="1000"></canvas></div>
+    <div class="btn-row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveTeamShareCard()">⬇ 保存到相册</button></div>`);
+  setTimeout(() => drawTeamShareCard(t), 60);
+}
+function drawTeamShareCard(t, noAvatar) {
+  const c = document.getElementById('shareCanvas'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = 750, cx = W / 2;
+  const s = TS[t.project_status] || TS.recruiting;
+  const members = (t.members || []).slice(0, 6);
+  ctx.font = '26px sans-serif';
+  const descLines = (() => {
+    if (!t.project_desc) return [];
+    const maxW = W - 140, out = [];
+    String(t.project_desc).split(/\n/).forEach(para => {
+      if (!para) { out.push(''); return; }
+      let cur = '';
+      for (const ch of para) {
+        if (cur && ctx.measureText(cur + ch).width > maxW) { out.push(cur); cur = ch; }
+        else cur += ch;
+      }
+      out.push(cur);
+    });
+    return out.slice(0, 4);
+  })();
+  const yHead = 300;                     // 队徽中心
+  let y = 470;                           // 队名
+  const yBadge = y + 58, ySlogan = y + 106;
+  const yProj = ySlogan + (t.slogan ? 52 : 40);
+  const yDesc = yProj + 44;
+  const yNeed = yDesc + (descLines.length ? descLines.length * 42 + 10 : 0) + (t.project_name ? 0 : -44);
+  const yMemTitle = yNeed + 52;
+  const yMem0 = yMemTitle + 46;
+  const memH = members.length * 66;
+  const H = yMem0 + memH + 190;
+  c.width = W; c.height = H;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0b0f1e'); g.addColorStop(.5, '#0d1428'); g.addColorStop(1, '#0a0d1a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(70,240,200,.55)'; ctx.lineWidth = 6; ctx.strokeRect(24, 24, W - 48, H - 48);
+  ctx.strokeStyle = 'rgba(139,124,255,.25)'; ctx.lineWidth = 1; ctx.strokeRect(38, 38, W - 76, H - 76);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 48px sans-serif'; ctx.fillText('XJHACK', cx, 112);
+  ctx.fillStyle = '#c9d1e5'; ctx.font = '26px sans-serif'; ctx.fillText('学军首届黑客松 · 队伍招募', cx, 160);
+  const drawRest = () => {
+    // 队名（自适应）
+    let nf = 42; ctx.font = `bold ${nf}px sans-serif`;
+    while (ctx.measureText(String(t.name || '未命名队伍')).width > W - 120 && nf > 26) { nf -= 2; ctx.font = `bold ${nf}px sans-serif`; }
+    ctx.fillStyle = '#eef4ff'; ctx.fillText(String(t.name || '未命名队伍'), cx, y);
+    // 状态徽章
+    ctx.font = '22px sans-serif'; ctx.fillStyle = s.color;
+    ctx.beginPath(); ctx.roundRect(cx - 60, yBadge - 26, 120, 34, 9); ctx.fillStyle = s.color + '22'; ctx.fill();
+    ctx.strokeStyle = s.color + '66'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = s.color; ctx.fillText(s.label, cx, yBadge);
+    // slogan
+    if (t.slogan) { ctx.fillStyle = '#8b94a8'; ctx.font = '24px sans-serif'; ctx.fillText('「' + String(t.slogan) + '」', cx, ySlogan); }
+    // 项目
+    if (t.project_name) { ctx.fillStyle = '#eef4ff'; ctx.font = 'bold 28px sans-serif'; ctx.fillText('项目：' + String(t.project_name), cx, yProj); }
+    if (descLines.length) {
+      ctx.fillStyle = '#aab4cc'; ctx.font = '24px sans-serif'; ctx.textAlign = 'left';
+      descLines.forEach((l, i) => ctx.fillText(l, 70, yDesc + i * 42));
+      ctx.textAlign = 'center';
+    }
+    // 招募需求
+    ctx.fillStyle = '#7fe9cf'; ctx.font = 'bold 26px sans-serif';
+    ctx.fillText('招募：' + String(t.role_needs || '不限方向，欢迎加入'), cx, yNeed);
+    // 成员标题
+    ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
+    ctx.fillText('成员 ' + members.length + ' 人 · 队长 ' + String(t.leader?.name || '—'), cx, yMemTitle);
+    // 成员行（名字+角色，带头像圆）
+    members.forEach((m, i) => {
+      const my = yMem0 + i * 66;
+      ctx.beginPath(); ctx.arc(70, my - 24, 26, 0, Math.PI * 2);
+      ctx.fillStyle = '#141a2e'; ctx.fill(); ctx.strokeStyle = 'rgba(70,240,200,.4)'; ctx.lineWidth = 2; ctx.stroke(); ctx.clip();
+      ctx.font = 'bold 30px sans-serif'; ctx.fillStyle = '#70f8d8';
+      ctx.fillText(String(m.name || '?').charAt(0), 70, my - 15);
+      ctx.restore();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#eef4ff'; ctx.font = 'bold 26px sans-serif'; ctx.fillText(String(m.name || ''), 112, my - 12);
+      ctx.fillStyle = '#8b94a8'; ctx.font = '21px sans-serif';
+      ctx.fillText(String(m.role || '') + (m.id === t.leader?.id ? ' · 队长' : ''), 112, my + 16);
+      if (m.id === t.leader?.id) {
+        ctx.beginPath(); ctx.roundRect(360, my - 30, 58, 28, 8); ctx.fillStyle = 'rgba(255,180,84,.12)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,180,84,.4)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = '#ffb454'; ctx.font = '19px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('队长', 389, my - 10); ctx.textAlign = 'left';
+      }
+    });
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 34px monospace';
+    ctx.fillText('http://47.76.118.161/', cx, H - 158);
+    ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
+    ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 112);
+  };
+  const drawEmblem = (img) => {
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, yHead, 72, 0, Math.PI * 2);
+    ctx.fillStyle = '#141a2e'; ctx.fill();
+    ctx.strokeStyle = '#46f0c8'; ctx.lineWidth = 6; ctx.stroke(); ctx.clip();
+    if (img) {
+      const iw = img.width, ih = img.height, ar = iw / ih;
+      let dw = 144, dh = 144;
+      if (ar > 1) dh = dw / ar; else dw = dh * ar;
+      ctx.drawImage(img, cx - dw / 2, yHead - dh / 2, dw, dh);
+    } else {
+      ctx.font = 'bold 64px sans-serif'; ctx.fillStyle = '#70f8d8';
+      ctx.fillText(String(t.leader?.name || t.name || '?').charAt(0), cx, yHead + 22);
+    }
+    ctx.restore();
+    drawRest();
+  };
+  const emblem = (t.leader && t.leader.avatar) ? t.leader.avatar : (members[0] && members[0].avatar);
+  if (!noAvatar && emblem) {
+    if (String(emblem).startsWith('data:')) loadImg(emblem, false).then(drawEmblem).catch(() => drawEmblem(null));
+    else loadImgDataUrl(emblem).then(u => loadImg(u, false)).then(drawEmblem).catch(() => drawEmblem(null));
+  } else drawEmblem(null);
+}
+function saveTeamShareCard() {
+  const c = document.getElementById('shareCanvas'); if (!c) return;
+  const t = _shareTeam;
+  let url;
+  try { url = c.toDataURL('image/png'); }
+  catch (e) {
+    drawTeamShareCard(t, true);
+    try { url = c.toDataURL('image/png'); } catch (e2) { return toast('生成失败，请重试', true); }
+  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'XJHACK-队伍招募-' + String(t?.name || '') + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('队伍卡片已生成，可在相册/下载中查看');
 }
 function openEditProfile() {
   if (!ME || !ME.user.player) return toast('请先登录', true);
@@ -1788,16 +1972,17 @@ function openTeam(id) {
           <button class="btn sm danger" onclick="handleRequest(${t.id}, ${r.id}, 'reject')">拒绝</button>
         </div></div>`).join('')}</div>` : ''}
       <div class="btn-row">
+        <button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button>
         <button class="btn ghost" onclick="openEditTeam(${t.id})">✎ 编辑队伍</button>
         <button class="btn danger" onclick="disbandTeam(${t.id})">解散队伍</button>
       </div>`
     : meRole === 'member' ? `
-      <div class="btn-row"><button class="btn danger" onclick="leaveTeam(${t.id})">退出队伍</button></div>`
+      <div class="btn-row"><button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button><button class="btn danger" onclick="leaveTeam(${t.id})">退出队伍</button></div>`
     : meRole === 'pending' ? `
-      <div class="btn-row"><button class="btn ghost" disabled>已提交申请，等待队长确认</button></div>`
+      <div class="btn-row"><button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button><button class="btn ghost" disabled>已提交申请，等待队长确认</button></div>`
     : ME && ME.user.player ? `
       <div class="field"><label>想对队长说什么（可选）</label><input id="joinMsg" placeholder="我的优势是…"></div>
-      <div class="btn-row"><button class="btn primary" onclick="joinTeam(${t.id})">申请加入</button></div>`
+      <div class="btn-row"><button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button><button class="btn primary" onclick="joinTeam(${t.id})">申请加入</button></div>`
     : `
       <div class="btn-row"><button class="btn primary" onclick="openLogin('register')">登录后申请加入</button></div>`}
   `);
