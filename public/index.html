@@ -229,7 +229,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 
 /* 队伍卡片 */
 .team-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
-.team-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;position:relative;transition:border-color .15s;min-width:0}
+.team-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;position:relative;transition:border-color .15s;min-width:0;display:flex;flex-direction:column}
 .team-card:active{border-color:var(--cyan)}
 .team-card .t-top{display:flex;align-items:flex-start;gap:10px}
 .team-card .t-name{font-size:15px;font-weight:800;word-break:break-all;flex:1}
@@ -237,7 +237,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:6px;flex:none;white-space:nowrap}
 .t-needs{font-size:11px;color:var(--text-2);margin-top:9px;line-height:1.6}
 .t-needs b{color:var(--amber);font-weight:700}
-.t-foot{display:flex;align-items:center;gap:10px;margin-top:11px}
+.t-foot{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:11px}
 .avatar-stack{display:flex}
 .avatar-stack img,.avatar-stack .ph{width:26px;height:26px;border-radius:50%;border:2px solid var(--card);object-fit:cover;margin-left:-9px}
 .avatar-stack img:first-child,.avatar-stack .ph:first-child{margin-left:0}
@@ -2032,8 +2032,9 @@ document.getElementById('modal').addEventListener('click', e => { if (e.target.i
   renderStats();
   updateBadge();
   showTab('home');
-  /* 调试：带 #testplist 打开时自动弹出成员列表 */
+  /* 调试：带 #testplist 打开时自动弹出成员列表；#teams 直达组队广场 */
   if (location.hash === '#testplist') setTimeout(openPlayersList, 1500);
+  else if (location.hash === '#teams') setTimeout(() => showTab('teams'), 600);
   document.getElementById('playerSearch')?.addEventListener('input', onSearch);
 })();
 </script>
