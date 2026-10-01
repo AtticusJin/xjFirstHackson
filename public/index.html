@@ -1985,7 +1985,7 @@ function openTeam(id) {
       <div class="btn-row"><button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button><button class="btn primary" onclick="joinTeam(${t.id})">申请加入</button></div>`
     : `
       <div class="btn-row"><button class="btn primary" onclick="openLogin('register')">登录后申请加入</button></div>`}
-  `);
+  `, false);
 }
 async function joinTeam(id) {
   try {
@@ -2166,9 +2166,9 @@ function renderUser() {
 
 /* ===== 通用 ===== */
 window.__modalStack = [];
-function modal(html) {
+function modal(html, stackable = true) {
   const box = document.getElementById('modalBox'), m = document.getElementById('modal');
-  if (m.classList.contains('open') && box.innerHTML.trim()) window.__modalStack.push(box.innerHTML);
+  if (stackable && m.classList.contains('open') && box.innerHTML.trim()) window.__modalStack.push(box.innerHTML);
   box.innerHTML = html; m.classList.add('open');
 }
 function closeModal() {
