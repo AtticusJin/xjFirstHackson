@@ -713,7 +713,7 @@ async function requireParticipant(req, res, next) {
 
 async function teamDetail(team, viewerId) {
   const members = await store.all('SELECT p.id, p.name, p.nickname, p.role, p.avatar FROM team_members m JOIN players p ON p.id = m.player_id WHERE m.team_id = ? ORDER BY m.id', team.id);
-  const requests = await store.all('SELECT r.id, r.player_id, r.msg, r.status, r.created_at, p.name, p.role, p.avatar FROM team_requests r JOIN players p ON p.id = r.player_id WHERE r.team_id = ? ORDER BY r.id DESC', team.id);
+  const requests = await store.all('SELECT r.id, r.player_id, r.msg, r.status, r.created_at, p.name, p.nickname, p.role, p.avatar, p.intro, p.tags, p.grade, p.gender FROM team_requests r JOIN players p ON p.id = r.player_id WHERE r.team_id = ? ORDER BY r.id DESC', team.id);
   const leader = await store.get('SELECT id, name, nickname, role, avatar FROM players WHERE id = ?', team.leader_id) || null;
   const myReq = viewerId ? await store.get("SELECT * FROM team_requests WHERE team_id = ? AND player_id = ? AND status = 'pending'", team.id, viewerId) : null;
   return {

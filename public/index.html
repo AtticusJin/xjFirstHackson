@@ -1965,9 +1965,10 @@ function openTeam(id) {
       <div class="section-title" style="margin:16px 0 8px">入队申请</div>
       <div class="me-list">${t.requests.filter(r => r.status === 'pending').map(r => `
         <div class="ann"><div class="a-top">
-          <span class="a-title">${esc(r.name)}</span><span style="font-size:10px;color:var(--text-3)">${esc(r.role || '')}</span>
+          <span class="a-title" style="cursor:pointer;color:var(--cyan);text-decoration:underline;text-decoration-style:dotted" onclick="viewApplicant(${t.id}, ${r.id})">${esc(r.name)} 👁</span><span style="font-size:10px;color:var(--text-3)">${esc(r.role || '')}</span>
         </div>${r.msg ? `<div class="a-body">${esc(r.msg)}</div>` : ''}
         <div class="btn-row" style="margin-top:8px">
+          <button class="btn sm ghost" onclick="viewApplicant(${t.id}, ${r.id})">查看资料</button>
           <button class="btn sm primary" onclick="handleRequest(${t.id}, ${r.id}, 'accept')">接受</button>
           <button class="btn sm danger" onclick="handleRequest(${t.id}, ${r.id}, 'reject')">拒绝</button>
         </div></div>`).join('')}</div>` : ''}
@@ -1995,6 +1996,30 @@ async function joinTeam(id) {
     const d = await api(`/teams/${id}/join`, { method: 'POST', body: JSON.stringify({ msg }) });
     toast(d.msg || '申请已提交'); await loadTeams(); closeModal();
   } catch (e) { err(e.message); }
+}
+/* 队长查看申请人完整资料后再决定是否通过 */
+function viewApplicant(tid, rid) {
+  const t = teams.find(x => x.id === tid);
+  if (!t) return toast('队伍不存在', true);
+  const r = (t.requests || []).find(x => x.id === rid);
+  if (!r) return toast('申请不存在或已处理', true);
+  const tags = (r.tags || '').split(/[\s,，]+/).map(x => x.trim()).filter(Boolean).slice(0, 10);
+  modal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>${esc(r.name)}${genderIcon(r.gender)}</h3>
+    <p class="sub">申请加入你的队伍「${esc(t.name)}」</p>
+    ${r.avatar ? `<div style="display:flex;justify-content:center;margin:10px 0"><img src="${esc(r.avatar)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan)" loading="lazy" decoding="async"></div>` : ''}
+    ${r.grade ? `<p class="sub">🎓 年级：${esc(r.grade)}</p>` : ''}
+    ${r.role ? `<p class="sub">方向：${esc(r.role)}</p>` : ''}
+    ${tags.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">${tags.map(tg => `<span class="tag">${esc(tg)}</span>`).join('')}</div>` : ''}
+    ${r.intro ? `<p class="sub" style="white-space:pre-wrap">${esc(r.intro)}</p>` : ''}
+    ${r.msg ? `<div class="ann" style="margin:10px 0 0"><div class="a-top"><span class="a-tag">申请留言</span></div><div class="a-body">${esc(r.msg)}</div></div>` : ''}
+    <div class="err-msg" id="modalErr"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn ghost" onclick="closeModal()">返回</button>
+      <button class="btn danger" onclick="handleRequest(${tid}, ${rid}, 'reject')">拒绝</button>
+      <button class="btn primary" onclick="handleRequest(${tid}, ${rid}, 'accept')">接受 TA →</button>
+    </div>`);
 }
 async function handleRequest(tid, rid, action) {
   try {
