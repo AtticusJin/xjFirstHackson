@@ -177,7 +177,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .d-top{display:flex;align-items:center;gap:14px}
 .d-top img{width:64px;height:64px;border-radius:14px;object-fit:cover;border:1px solid var(--line);flex:none}
 .d-top .d-id{flex:1;min-width:0}
-.d-top .d-id b{font-size:19px;word-break:break-all}
+.d-top .d-id b{font-size:18px;word-break:break-word;overflow-wrap:anywhere;line-height:1.35}
 .d-top .d-id .d-nick{font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:3px;display:block}
 .d-role{font-family:var(--mono);font-size:10px;color:var(--amber);border:1px solid rgba(255,180,84,.35);padding:3px 9px;border-radius:6px;background:rgba(255,180,84,.08);flex:none}
 .d-meta{font-size:11px;color:var(--text-2);display:flex;flex-wrap:wrap;gap:6px}
@@ -501,6 +501,8 @@ function toast(html, warn = false) {
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nm = s => String(s ?? '').replace(/\s+/g, ' ').trim();
+/* 姓名是 11 位纯数字（疑似把手机号填进姓名栏）且填了昵称时，展示昵称，避免手机号外露 */
+const dn = p => { const n = nm(p && p.name); return /^\d{11}$/.test(n) && nm(p && p.nickname) ? nm(p.nickname) : n; };
 const ROLE_COLOR = { '开发':'#46F0C8', '设计':'#8B7CFF', '产品':'#FFB454', '硬件':'#FF5C8A', '运营':'#4ADE9B', '教育':'#FFB454', 'AI':'#FF5C8A', '其他':'#9AA8C7' };
 const AV_STOCK = ['https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/TBJTb2Mzcoa1wixbugXcLYSKn5g','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/QIirbTnqcoPjOwx8ESucKgoZnui','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/NEFabViD5owsKUxFrT1c2yAbnPf','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/W01RbY6wHoabHkx2qwFc5wa7nCh','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/HeoPbEO2oocfMhxanQDcINV1np0','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/UcgobADHOoVJUHxYIhpcl1BZnFg','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/ShoobNfU8ovuWvxhIt2cNVvJnBd','https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/AFcbbmEymo7q5fxHkPBcs3gXnTd'];
 
@@ -750,7 +752,7 @@ function renderGrid() {
       <div class="pc-top">
         ${p.avatar ? `<img class="pc-avatar" src="${esc(p.avatar)}" alt="" loading="lazy" decoding="async">` : `<div class="pc-avatar" style="background:var(--card);border:1px solid var(--line)"></div>`}
         <div class="pc-id">
-          <div class="pc-name" title="${esc(nm(p.name))}" style="font-size:${(()=>{const n=[...(nm(p.name)||'')].length;return n<=10?14:n<=12?12:n<=15?11:10.5})()}px">${esc(nm(p.name))}${genderIcon(p.gender)}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
+          <div class="pc-name" title="${esc(dn(p))}" style="font-size:${(()=>{const n=[...(dn(p)||'')].length;return n<=10?14:n<=12?12:n<=15?11:10.5})()}px">${esc(dn(p))}${genderIcon(p.gender)}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
           ${p.nickname ? `<div class="pc-handle">@${esc(nm(p.nickname))}</div>` : ''}
         </div>
       </div>
@@ -817,7 +819,7 @@ function openPlayerDetail(pid) {
     <div class="d-card">
       <div class="d-top">
         ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : `<div style="width:64px;height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);flex:none"></div>`}
-        <div class="d-id"><b>${esc(nm(p.name))}${genderIcon(p.gender)}</b>${p.nickname ? `<span class="d-nick">@${esc(nm(p.nickname))}</span>` : ''}${p.is_friend ? '<span class="friend-tag big" title="你们互相点赞，互为好友">💛 互为好友</span>' : ''}</div>
+        <div class="d-id"><b>${esc(dn(p))}${genderIcon(p.gender)}</b>${p.nickname ? `<span class="d-nick">@${esc(nm(p.nickname))}</span>` : ''}${p.is_friend ? '<span class="friend-tag big" title="你们互相点赞，互为好友">💛 互为好友</span>' : ''}</div>
         <div class="d-roles">${roleList(p.role).map(r => `<span class="d-role">${esc(r)}</span>`).join('') || '<span class="d-role">未标注</span>'}</div>
       </div>
       ${(p.grade || tags.length) ? `<div class="d-meta">${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}${tags.map(t => `<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
@@ -903,7 +905,7 @@ function plistRow(p) {
   const roles = roleList(p.role);
   return `<div class="ann t-member" onclick="openPlayerDetail(${p.id})"><div class="a-top">
     ${p.avatar ? `<img src="${esc(p.avatar)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
-    <span class="a-title">${esc(nm(p.name))}${genderIcon(p.gender)}</span>
+    <span class="a-title">${esc(dn(p))}${genderIcon(p.gender)}</span>
     ${p.is_friend ? '<span class="friend-tag" title="互为好友">💛</span>' : ''}
     ${p.nickname ? `<span style="font-size:10px;color:var(--text-3)">@${esc(nm(p.nickname))}</span>` : ''}
     ${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}
@@ -1790,7 +1792,7 @@ function openEditProfile() {
     <button class="modal-close" onclick="closeModal()">×</button>
     <h3>编辑我的资料</h3>
     <p class="sub">${p.self_registered ? '自由选手可修改姓名；' : '你的身份来自飞书报名表，姓名锁定不可改（防冒领）。'}联系方式登录后可见，向所有同学展示，用于组队沟通。</p>
-    <div class="field"><label>姓名</label><input id="pfName" value="${esc(p.name)}" ${p.self_registered ? '' : 'disabled'}></div>
+    <div class="field"><label>姓名</label><input id="pfName" placeholder="请填写真实姓名（勿填手机号/昵称）" value="${esc(p.name)}" ${p.self_registered ? '' : 'disabled'}></div>
     <div class="field"><label>昵称（可选）</label><input id="pfNick" placeholder="@handle" value="${esc(p.nickname || '')}"></div>
     <div class="field"><label>方向（可多选）</label>
       <div class="role-chips">${roleChips(p.role)}</div></div>
@@ -1952,7 +1954,7 @@ async function openTeam(id) {
     <div class="me-list">${t.members.map(m => `
       <div class="ann t-member" onclick="openPlayerDetail(${m.id})"><div class="a-top">
         ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
-        <span class="a-title">${esc(m.name)}${genderIcon(m.gender)}</span>
+        <span class="a-title">${esc(dn(m))}${genderIcon(m.gender)}</span>
         <span style="font-size:10px;color:var(--text-3)">${esc(m.role || '')}</span>
         ${m.id === t.leader?.id ? `<span class="a-tag" style="background:rgba(255,180,84,.1);color:var(--amber);border-color:rgba(255,180,84,.3)">队长</span>` : ''}
       </div></div>`).join('')}</div>
@@ -2007,7 +2009,7 @@ function viewApplicant(tid, rid) {
   const tags = (r.tags || '').split(/[\s,，]+/).map(x => x.trim()).filter(Boolean).slice(0, 10);
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
-    <h3>${esc(r.name)}${genderIcon(r.gender)}</h3>
+    <h3>${esc(dn(r))}${genderIcon(r.gender)}</h3>
     <p class="sub">申请加入你的队伍「${esc(t.name)}」</p>
     ${r.avatar ? `<div style="display:flex;justify-content:center;margin:10px 0"><img src="${esc(r.avatar)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan)" loading="lazy" decoding="async"></div>` : ''}
     ${r.grade ? `<p class="sub">🎓 年级：${esc(r.grade)}</p>` : ''}
