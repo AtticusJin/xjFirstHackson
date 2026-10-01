@@ -1064,7 +1064,7 @@ function renderTeams() {
       <div class="progress-bar"><i style="width:0" data-pct="${s.pct}"></i></div>
       <div class="t-foot">
         <div class="avatar-stack">${t.members.slice(0, 6).map(m => m.avatar ? `<img src="${esc(m.avatar)}" alt="" loading="lazy" decoding="async">` : '<span class="ph">?</span>').join('')}</div>
-        <span class="t-count">${t.member_count} 人 · 队长 ${esc(t.leader?.name || '—')}</span>
+        <span class="t-count">${t.member_count}/4 人 · 队长 ${esc(t.leader?.name || '—')}</span>
       </div>
     </div>`;
   }).join('');
@@ -1144,7 +1144,7 @@ async function renderMyTeams() {
       return `<div class="team-card" style="cursor:pointer" onclick="openTeam(${t.id})">
         <div class="t-top"><div><div class="t-name">${esc(t.name)}</div>${t.project_name ? `<div class="t-slogan">项目：${esc(t.project_name)}</div>` : ''}</div>
         <span class="badge" style="color:${s.color};border:1px solid ${s.color}55;background:${s.color}14">${s.label}</span></div>
-        <div class="t-foot"><span class="t-count">${t.member_count} 人 · 队长 ${esc(t.leader?.name || '—')}</span></div>
+        <div class="t-foot"><span class="t-count">${t.member_count}/4 人 · 队长 ${esc(t.leader?.name || '—')}</span></div>
       </div>`;
     };
     if (!d.led.length && !d.joined.length) html += '<div class="empty">还没加入任何队伍<br>去「组队」广场看看，或创建一支属于你的队伍。</div>';
@@ -1500,7 +1500,7 @@ async function recruitPlayer(pid, pname) {
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
     <h3>🤝 招募 ${esc(pname)}</h3>
-    <p class="sub">邀请 TA 加入你的队伍「${esc(team.name)}」</p>
+    <p class="sub">邀请 TA 加入你的队伍「${esc(team.name)}」<span style="color:var(--text-3)">（当前 ${team.member_count || 1}/4 人）</span></p>
     <div class="field"><label>想对 TA 说的话（可选）</label><textarea id="recruitMsg" rows="3" placeholder="例如：我们队正在做 AI 应用，缺一个会前端的同学，很看好你！"></textarea></div>
     <div class="btn-row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="doRecruit(${team.id}, ${pid})">发出招募</button></div>`);
 }
@@ -1718,7 +1718,7 @@ function drawTeamShareCard(t, noAvatar) {
     ctx.fillText('招募：' + String(t.role_needs || '不限方向，欢迎加入'), cx, yNeed);
     // 成员标题
     ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
-    ctx.fillText('成员 ' + members.length + ' 人 · 队长 ' + String(t.leader?.name || '—'), cx, yMemTitle);
+    ctx.fillText('成员 ' + members.length + '/4 人 · 队长 ' + String(t.leader?.name || '—'), cx, yMemTitle);
     // 成员行（名字+角色，带头像圆）
     members.forEach((m, i) => {
       const my = yMem0 + i * 66;
@@ -1892,7 +1892,7 @@ function openCreateTeam() {
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
     <h3>创建小队</h3>
-    <p class="sub">拉一支 2-4 人小队，48H 一起做点东西。已在小队中则无法创建。</p>
+    <p class="sub">大赛规定每队 <b>2~4 人</b>（最少 2 人参赛、最多 4 人），可先创建再招募队友。已在小队中则无法创建。</p>
     <div class="field"><label>队伍名称 *</label><input id="ctName" placeholder="例如：全栈小分队"></div>
     <div class="field"><label>Slogan（可选）</label><input id="ctSlogan" placeholder="一句话介绍你的队伍"></div>
     <div class="field"><label>需要什么方向的人</label>
@@ -1947,7 +1947,7 @@ function openTeam(id) {
     ${t.role_needs ? `<div class="t-needs" style="margin-top:8px">需要：<b>${esc(t.role_needs)}</b></div>` : ''}
     <div class="progress-bar"><i style="width:${s.pct}%"></i></div>
 
-    <div class="section-title" style="margin:16px 0 8px">成员 ${t.member_count}<span style="font-size:10px;color:var(--text-3);font-weight:400">（点击查看成员资料）</span></div>
+    <div class="section-title" style="margin:16px 0 8px">成员 ${t.member_count}/4${t.member_count < 4 && ['recruiting', 'formed', 'developing'].includes(t.project_status) ? `<span style="font-size:10px;color:var(--text-3);font-weight:400">（还需 ${4 - t.member_count} 人）</span>` : ''}<span style="font-size:10px;color:var(--text-3);font-weight:400">（点击查看成员资料）</span></div>
     <div class="me-list">${t.members.map(m => `
       <div class="ann t-member" onclick="openPlayerDetail(${m.id})"><div class="a-top">
         ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
@@ -1981,10 +1981,12 @@ function openTeam(id) {
     : meRole === 'pending' ? `
       <div class="btn-row"><button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button><button class="btn ghost" disabled>已提交申请，等待队长确认</button></div>`
     : ME && ME.user.player ? `
-      <div class="field"><label>想对队长说什么（可选）</label><input id="joinMsg" placeholder="我的优势是…"></div>
-      <div class="btn-row"><button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button><button class="btn primary" onclick="joinTeam(${t.id})">申请加入</button></div>`
+      ${['submitted', 'judging', 'finished'].includes(t.project_status) ? `<div class="btn-row"><button class="btn primary" disabled>队伍已提交作品，不再接受加入</button></div>`
+        : t.member_count >= 4 ? `<div class="btn-row"><button class="btn primary" disabled>队伍已满员（4/4）</button></div>`
+        : `<div class="field"><label>想对队长说什么（可选）</label><input id="joinMsg" placeholder="我的优势是…"></div>
+      <div class="btn-row"><button class="btn ghost" onclick="shareTeamCard(${t.id})">↗ 分享队伍</button><button class="btn primary" onclick="joinTeam(${t.id})">申请加入</button></div>`}`
     : `
-      <div class="btn-row"><button class="btn primary" onclick="openLogin('register')">登录后申请加入</button></div>`}
+      ${t.member_count >= 4 ? `<div class="btn-row"><button class="btn primary" disabled>队伍已满员（4/4）</button></div>` : `<div class="btn-row"><button class="btn primary" onclick="openLogin('register')">登录后申请加入</button></div>`}`}
   `, false);
 }
 async function joinTeam(id) {

@@ -775,6 +775,10 @@ app.put('/api/teams/:id', requireParticipant, wrap(async (req, res) => {
   const { name, slogan, role_needs, intro, project_name, project_desc, project_status, status } = req.body || {};
   const ps = project_status || status || team.project_status;
   if (ps && !TEAM_STATUS[ps]) return res.status(400).json({ ok: false, msg: '无效的队伍状态' });
+  if (ps === 'submitted') {
+    const mCnt = Number((await store.get('SELECT COUNT(*) c FROM team_members WHERE team_id = ?', team.id)).c);
+    if (mCnt < 2) return res.status(409).json({ ok: false, msg: '队伍至少 2 人才能提交作品（大赛规定每队 2~4 人）' });
+  }
   await store.run('UPDATE teams SET name=?, slogan=?, role_needs=?, intro=?, project_name=?, project_desc=?, project_status=?, status=? WHERE id=?',
     String(name || team.name).trim(), String(slogan ?? team.slogan).trim(), String(role_needs ?? team.role_needs).trim(),
     String(intro ?? team.intro).trim(), String(project_name ?? team.project_name).trim(), String(project_desc ?? team.project_desc).trim(),
@@ -785,7 +789,9 @@ app.put('/api/teams/:id', requireParticipant, wrap(async (req, res) => {
 app.post('/api/teams/:id/join', requireParticipant, wrap(async (req, res) => {
   const team = await store.get("SELECT * FROM teams WHERE id = ? AND status != 'disbanded'", parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在或已解散' });
-  if (team.project_status === 'finished' || team.project_status === 'judging') return res.status(409).json({ ok: false, msg: '队伍已进入项目阶段，暂不接受加入' });
+  if (['submitted', 'judging', 'finished'].includes(team.project_status)) return res.status(409).json({ ok: false, msg: '队伍已提交作品，不再接受加入' });
+  const tCnt = Number((await store.get('SELECT COUNT(*) c FROM team_members WHERE team_id = ?', team.id)).c);
+  if (tCnt >= 4) return res.status(409).json({ ok: false, msg: '队伍已满员（大赛规定每队最多 4 人）' });
   if (team.leader_id === req.user.player_id) return res.status(409).json({ ok: false, msg: '你是队长，无需申请' });
   const asLeader = await store.get("SELECT 1 FROM teams WHERE leader_id = ? AND status != 'disbanded'", req.user.player_id);
   if (asLeader) return res.status(409).json({ ok: false, msg: '你是队长，不能申请加入其他队伍；解散自己的队伍后可加入' });
@@ -807,7 +813,9 @@ app.post('/api/teams/:id/invite', requireParticipant, wrap(async (req, res) => {
   const team = await store.get("SELECT * FROM teams WHERE id = ? AND status != 'disbanded'", parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在或已解散' });
   if (team.leader_id !== req.user.player_id) return res.status(403).json({ ok: false, msg: '只有队长可以发起招募' });
-  if (team.project_status === 'finished' || team.project_status === 'judging') return res.status(409).json({ ok: false, msg: '队伍已进入项目阶段，暂不招募' });
+  if (['submitted', 'judging', 'finished'].includes(team.project_status)) return res.status(409).json({ ok: false, msg: '队伍已提交作品，不再招募' });
+  const tCnt = Number((await store.get('SELECT COUNT(*) c FROM team_members WHERE team_id = ?', team.id)).c);
+  if (tCnt >= 4) return res.status(409).json({ ok: false, msg: '队伍已满员（大赛规定每队最多 4 人）' });
   const target = parseInt(req.body?.player_id || 0, 10);
   if (!target) return res.status(400).json({ ok: false, msg: '缺少招募对象' });
   if (target === req.user.player_id) return res.status(409).json({ ok: false, msg: '不能招募自己' });
@@ -832,6 +840,8 @@ app.post('/api/teams/invites/:id', requireParticipant, wrap(async (req, res) => 
   if (action === 'accept') {
     const already = await store.get('SELECT 1 FROM team_members m JOIN teams t ON t.id = m.team_id WHERE m.player_id = ? AND t.status != ?', req.user.player_id, 'disbanded');
     if (already) return res.status(409).json({ ok: false, msg: '你已在一支队伍中，无法接受邀请' });
+    const tCnt = Number((await store.get('SELECT COUNT(*) c FROM team_members WHERE team_id = ?', inv.team_id)).c);
+    if (tCnt >= 4) return res.status(409).json({ ok: false, msg: '队伍已满员（大赛规定每队最多 4 人）' });
     await store.run('INSERT INTO team_members (team_id, player_id) VALUES (?, ?)', team.id, req.user.player_id);
     await store.run("UPDATE team_invites SET status = 'accepted' WHERE id = ?", inv.id);
     // 入队后：自己的 pending 申请与其余 pending 招募邀请全部作废
