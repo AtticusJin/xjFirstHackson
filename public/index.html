@@ -1618,7 +1618,7 @@ function openEditProfile() {
       <div class="tag-edit" id="tagBox"></div>
       <div class="tag-input-line" id="tagInputLine" style="display:none"><input id="tagInput" placeholder="输入标签后点完成" maxlength="12" autocomplete="off"><button class="btn ghost sm" onclick="confirmTagInput()">完成</button></div>
       <div class="tag-tpl">快速添加：${TAG_TPL.map(t => `<span onclick="addTag('${t}')">${esc(t)}</span>`).join('')}</div></div>
-    <div class="field"><label>联系方式（登录后可见）</label><input id="pfContact" placeholder="手机 / 邮箱 / 其他" value="${esc(p.contact || '')}"></div>
+    <div class="field"><label>联系方式（登录后可见）</label><input id="pfContact" placeholder="微信 / 手机 / 邮箱 / 其他" value="${esc(p.contact || '')}"></div>
     <div class="field"><label>头像</label>
       <div class="avatar-pick" id="pfAvatarPrev">
         ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : '<div class="ap-empty"></div>'}
