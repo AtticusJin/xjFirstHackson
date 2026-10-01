@@ -305,8 +305,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .tag-add:active{border-color:#fff;color:#fff}
 .tag-input-line{display:flex;gap:8px;margin-top:8px}
 .tag-input-line input{flex:1;min-width:0}
-.tag-tpl{font-size:10px;color:var(--text-3);margin-top:9px;line-height:1.9}
-.tag-tpl span{color:var(--cyan);cursor:pointer;border:1px solid rgba(70,240,200,.22);background:rgba(70,240,200,.06);padding:2px 9px;border-radius:6px;margin-right:6px;font-family:var(--mono);white-space:nowrap}
+.tag-tpl{font-size:10px;color:var(--text-3);margin-top:10px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;line-height:1}
+.tag-tpl span{color:var(--cyan);cursor:pointer;border:1px solid rgba(70,240,200,.22);background:rgba(70,240,200,.06);padding:3px 10px;border-radius:6px;font-family:var(--mono);white-space:nowrap}
 .tag-tpl span:active{border-color:var(--cyan)}
 /* 创建小队 */
 .btn.block{width:100%;justify-content:center}
@@ -1605,7 +1605,7 @@ function openEditProfile() {
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
     <h3>编辑我的资料</h3>
-    <p class="sub">${p.self_registered ? '自由选手可修改姓名；' : '你的身份来自飞书报名表，姓名锁定不可改（防冒领）。'}联系方式仅队长可见，不对外展示。</p>
+    <p class="sub">${p.self_registered ? '自由选手可修改姓名；' : '你的身份来自飞书报名表，姓名锁定不可改（防冒领）。'}联系方式登录后可见，向所有同学展示，用于组队沟通。</p>
     <div class="field"><label>姓名</label><input id="pfName" value="${esc(p.name)}" ${p.self_registered ? '' : 'disabled'}></div>
     <div class="field"><label>昵称（可选）</label><input id="pfNick" placeholder="@handle" value="${esc(p.nickname || '')}"></div>
     <div class="field"><label>方向（可多选）</label>
@@ -1618,7 +1618,7 @@ function openEditProfile() {
       <div class="tag-edit" id="tagBox"></div>
       <div class="tag-input-line" id="tagInputLine" style="display:none"><input id="tagInput" placeholder="输入标签后点完成" maxlength="12" autocomplete="off"><button class="btn ghost sm" onclick="confirmTagInput()">完成</button></div>
       <div class="tag-tpl">快速添加：${TAG_TPL.map(t => `<span onclick="addTag('${t}')">${esc(t)}</span>`).join('')}</div></div>
-    <div class="field"><label>联系方式（仅队长可见）</label><input id="pfContact" placeholder="手机 / 邮箱 / 其他" value="${esc(p.contact || '')}"></div>
+    <div class="field"><label>联系方式（登录后可见）</label><input id="pfContact" placeholder="手机 / 邮箱 / 其他" value="${esc(p.contact || '')}"></div>
     <div class="field"><label>头像</label>
       <div class="avatar-pick" id="pfAvatarPrev">
         ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : '<div class="ap-empty"></div>'}
