@@ -1653,6 +1653,7 @@ function shareTeamCard(tid) {
     <h3>分享队伍</h3>
     <p class="sub">生成队伍招募卡片 · 长按图片或点下方按钮保存到相册</p>
     <div class="share-preview"><canvas id="shareCanvas" width="750" height="1000"></canvas></div>
+    <div class="d-contact" style="justify-content:center;text-align:center">🌐 首页网址：<b>http://47.76.118.161/</b><button class="btn ghost sm" onclick="copyText('http://47.76.118.161/','网址已复制')">复制</button></div>
     <div class="btn-row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveTeamShareCard()">⬇ 保存到相册</button></div>`);
   setTimeout(() => drawTeamShareCard(t), 60);
 }
@@ -1741,10 +1742,14 @@ function drawTeamShareCard(t, noAvatar) {
       }
     });
     ctx.textAlign = 'center';
+    // 底部网址高亮条
+    ctx.beginPath(); ctx.roundRect(cx - 250, H - 168, 500, 108, 16);
+    ctx.fillStyle = 'rgba(70,240,200,.08)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(70,240,200,.45)'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 34px monospace';
-    ctx.fillText('http://47.76.118.161/', cx, H - 158);
+    ctx.fillText('http://47.76.118.161/', cx, H - 122);
     ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
-    ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 112);
+    ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 82);
   };
   const drawEmblem = (img) => {
     ctx.save(); ctx.beginPath(); ctx.arc(cx, yHead, 72, 0, Math.PI * 2);
