@@ -1745,7 +1745,7 @@ async function createTeam() {
       project_name: document.getElementById('ctProj').value.trim(),
       project_desc: document.getElementById('ctProjDesc').value.trim()
     })});
-    closeModal(); toast('小队已创建 ✓'); loadTeams();
+    closeModal(); toast('小队已创建 ✓'); await loadTeams();
   } catch (e) { err(e.message); }
 }
 function openTeam(id) {
@@ -1806,26 +1806,26 @@ async function joinTeam(id) {
   try {
     const msg = document.getElementById('joinMsg')?.value.trim() || '';
     const d = await api(`/teams/${id}/join`, { method: 'POST', body: JSON.stringify({ msg }) });
-    toast(d.msg || '申请已提交'); loadTeams(); closeModal();
+    toast(d.msg || '申请已提交'); await loadTeams(); closeModal();
   } catch (e) { err(e.message); }
 }
 async function handleRequest(tid, rid, action) {
   try {
     const d = await api(`/teams/${tid}/requests/${rid}`, { method: 'POST', body: JSON.stringify({ action }) });
-    toast(d.msg || '已处理'); loadTeams(); openTeam(tid); updateBadge();
+    toast(d.msg || '已处理'); await loadTeams(); openTeam(tid); updateBadge();
   } catch (e) { err(e.message); }
 }
 async function setTeamStatus(tid, st) {
   try {
     const d = await api(`/teams/${tid}`, { method: 'PUT', body: JSON.stringify({ project_status: st }) });
-    toast(`状态已更新为「${TS[st].label}」`); loadTeams(); openTeam(tid);
+    toast(`状态已更新为「${TS[st].label}」`); await loadTeams(); openTeam(tid);
   } catch (e) { err(e.message); }
 }
 async function leaveTeam(tid) {
   askConfirm('退出队伍', '退出后你将变为无队伍状态，可自由申请加入其他队伍。确定退出吗？', '退出队伍', `doLeaveTeam(${tid})`);
 }
 async function doLeaveTeam(tid) {
-  try { const d = await api(`/teams/${tid}/leave`, { method: 'POST' }); toast(d.msg); loadTeams(); closeModal(); }
+  try { const d = await api(`/teams/${tid}/leave`, { method: 'POST' }); toast(d.msg); await loadTeams(); closeModal(); }
   catch (e) { err(e.message); }
 }
 async function disbandTeam(tid) {
@@ -1833,7 +1833,7 @@ async function disbandTeam(tid) {
   askConfirm(`解散队伍「${t ? t.name : ''}」`, '解散后所有成员将被移出，队伍记录与未处理申请将全部删除，此操作不可恢复！', '确认解散', `doDisbandTeam(${tid})`);
 }
 async function doDisbandTeam(tid) {
-  try { const d = await api(`/teams/${tid}/disband`, { method: 'POST' }); toast(d.msg); loadTeams(); closeModal(); }
+  try { const d = await api(`/teams/${tid}/disband`, { method: 'POST' }); toast(d.msg); await loadTeams(); closeModal(); }
   catch (e) { err(e.message); }
 }
 function openEditTeam(tid) {
@@ -1861,7 +1861,7 @@ async function saveTeam(tid) {
       project_name: document.getElementById('etProj').value.trim(),
       project_desc: document.getElementById('etProjDesc').value.trim()
     })});
-    toast('队伍已更新 ✓'); loadTeams(); openTeam(tid);
+    toast('队伍已更新 ✓'); await loadTeams(); openTeam(tid);
   } catch (e) { err(e.message); }
 }
 
