@@ -231,8 +231,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .team-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .team-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;position:relative;transition:border-color .15s;min-width:0;display:flex;flex-direction:column}
 .team-card:active{border-color:var(--cyan)}
-.team-card .t-top{display:flex;align-items:flex-start;gap:10px}
-.team-card .t-name{font-size:15px;font-weight:800;word-break:break-all;flex:1}
+.team-card .t-top{display:block}
+.team-card .t-name{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;font-weight:800;word-break:break-all;flex:1}
 .team-card .t-slogan{font-size:11px;color:var(--text-2);margin-top:3px;line-height:1.6}
 .badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:6px;flex:none;white-space:nowrap}
 .t-needs{font-size:11px;color:var(--text-2);margin-top:9px;line-height:1.6}
@@ -1046,11 +1046,8 @@ function renderTeams() {
     const mine = ME && (t.my_role === 'leader' || t.my_role === 'member');
     return `<div class="team-card${mine ? ' mine' : ''}" onclick="openTeam(${t.id})">
       <div class="t-top">
-        <div>
-          <div class="t-name">${esc(t.name)}${mine ? ' <span class="mine-tag">我的</span>' : ''}</div>
-          ${t.slogan ? `<div class="t-slogan">${esc(t.slogan)}</div>` : ''}
-        </div>
-        <span class="badge" style="color:${s.color};border:1px solid ${s.color}55;background:${s.color}14">${s.label}</span>
+        <div class="t-name"><span>${esc(t.name)}</span>${mine ? '<span class="mine-tag">我的</span>' : ''}<span class="badge" style="color:${s.color};border:1px solid ${s.color}55;background:${s.color}14">${s.label}</span></div>
+        ${t.slogan ? `<div class="t-slogan">${esc(t.slogan)}</div>` : ''}
       </div>
       ${t.project_name ? `<div class="t-proj">项目：<b>${esc(t.project_name)}</b>${t.project_desc ? ' — ' + esc(t.project_desc) : ''}</div>` : ''}
       ${t.role_needs ? `<div class="t-needs">需要：<b>${esc(t.role_needs)}</b></div>` : ''}
