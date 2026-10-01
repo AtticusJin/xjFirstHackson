@@ -1149,8 +1149,8 @@ async function renderMyTeams() {
     d.led.forEach(t => html += card(t));
     d.joined.forEach(t => html += card(t));
     if (d.pending.length) {
-      html += `<div class="ann" style="margin-top:10px"><div class="a-top"><span class="a-tag">PENDING</span><span class="a-title">等待确认的申请</span></div>
-        <div class="a-body">${d.pending.map(r => `${esc(r.team_name)}（${esc(TS[r.project_status]?.label || '')}）`).join('、')}</div></div>`;
+      html += `<div class="ann" style="margin-top:10px"><div class="a-top"><span class="a-tag">PENDING</span><span class="a-title">等待确认的申请（${d.pending.length}/3）</span></div>
+        <div class="a-body">${d.pending.map(r => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0"><span>${esc(r.team_name)}（${esc(TS[r.project_status]?.label || '')}）</span><button class="btn ghost sm" onclick="cancelApply(${r.team_id}, ${r.id})">撤销</button></div>`).join('')}</div></div>`;
     }
     el.innerHTML = html;
   } catch (e) { el.innerHTML = '<div class="empty">加载失败</div>'; }
@@ -1813,6 +1813,15 @@ async function handleRequest(tid, rid, action) {
   try {
     const d = await api(`/teams/${tid}/requests/${rid}`, { method: 'POST', body: JSON.stringify({ action }) });
     toast(d.msg || '已处理'); await loadTeams(); openTeam(tid); updateBadge();
+  } catch (e) { err(e.message); }
+}
+async function cancelApply(tid, rid) {
+  askConfirm('撤销申请', '确定撤销对这支队伍的申请吗？撤销后名额可重新申请其他队伍。', '撤销申请', `doCancelApply(${tid}, ${rid})`);
+}
+async function doCancelApply(tid, rid) {
+  try {
+    const d = await api(`/teams/${tid}/requests/${rid}`, { method: 'DELETE' });
+    toast(d.msg || '已撤销'); renderMe(); updateBadge();
   } catch (e) { err(e.message); }
 }
 async function setTeamStatus(tid, st) {

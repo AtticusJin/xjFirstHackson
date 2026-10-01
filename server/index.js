@@ -753,6 +753,10 @@ app.get('/api/teams/mine', requireParticipant, wrap(async (req, res) => {
 app.post('/api/teams', requireParticipant, wrap(async (req, res) => {
   const { name, slogan, role_needs, intro, project_name, project_desc } = req.body || {};
   if (!name || !String(name).trim()) return res.status(400).json({ ok: false, msg: '队伍名称不能为空' });
+  const asLeader2 = await store.get("SELECT 1 FROM teams WHERE leader_id = ? AND status != 'disbanded'", req.user.player_id);
+  if (asLeader2) return res.status(409).json({ ok: false, msg: '你已是队长，需解散当前队伍后才能创建新队伍' });
+  const inTeam2 = await store.get('SELECT 1 FROM team_members m JOIN teams t ON t.id = m.team_id WHERE m.player_id = ? AND t.status != ?', req.user.player_id, 'disbanded');
+  if (inTeam2) return res.status(409).json({ ok: false, msg: '你已在一支队伍中，退出后才能创建队伍' });
   const r = await store.run('INSERT INTO teams (name, slogan, role_needs, intro, project_name, project_desc, project_status, leader_id, status) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id',
     String(name).trim(), String(slogan || '').trim(), String(role_needs || '').trim(), String(intro || '').trim(),
     String(project_name || '').trim(), String(project_desc || '').trim(), 'recruiting', req.user.player_id, 'recruiting');
@@ -780,10 +784,16 @@ app.post('/api/teams/:id/join', requireParticipant, wrap(async (req, res) => {
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在或已解散' });
   if (team.project_status === 'finished' || team.project_status === 'judging') return res.status(409).json({ ok: false, msg: '队伍已进入项目阶段，暂不接受加入' });
   if (team.leader_id === req.user.player_id) return res.status(409).json({ ok: false, msg: '你是队长，无需申请' });
+  const asLeader = await store.get("SELECT 1 FROM teams WHERE leader_id = ? AND status != 'disbanded'", req.user.player_id);
+  if (asLeader) return res.status(409).json({ ok: false, msg: '你是队长，不能申请加入其他队伍；解散自己的队伍后可加入' });
+  const alreadyIn = await store.get('SELECT 1 FROM team_members m JOIN teams t ON t.id = m.team_id WHERE m.player_id = ? AND t.status != ?', req.user.player_id, 'disbanded');
+  if (alreadyIn) return res.status(409).json({ ok: false, msg: '你已在一支队伍中，退出后才能申请加入其他队伍' });
   const inTeam = await store.get('SELECT 1 FROM team_members WHERE team_id = ? AND player_id = ?', team.id, req.user.player_id);
   if (inTeam) return res.status(409).json({ ok: false, msg: '你已在该队伍中' });
   const dup = await store.get("SELECT 1 FROM team_requests WHERE team_id = ? AND player_id = ? AND status = 'pending'", team.id, req.user.player_id);
   if (dup) return res.status(409).json({ ok: false, msg: '已提交过申请，等待队长处理' });
+  const pendCnt = Number((await store.get("SELECT COUNT(*) c FROM team_requests WHERE player_id = ? AND status = 'pending'", req.user.player_id)).c);
+  if (pendCnt >= 3) return res.status(409).json({ ok: false, msg: '最多同时申请 3 支队伍，请先等待队长处理或撤销' });
   const msg = String(req.body?.msg || '').trim();
   await store.run('INSERT INTO team_requests (team_id, player_id, msg) VALUES (?, ?, ?)', team.id, req.user.player_id, msg);
   res.json({ ok: true, msg: '申请已提交，等待队长确认' });
@@ -800,13 +810,23 @@ app.post('/api/teams/:id/requests/:rid', requireParticipant, wrap(async (req, re
     const dup = await store.get('SELECT 1 FROM team_members WHERE team_id = ? AND player_id = ?', team.id, reqRow.player_id);
     if (!dup) await store.run('INSERT INTO team_members (team_id, player_id) VALUES (?, ?)', team.id, reqRow.player_id);
     await store.run("UPDATE team_requests SET status = 'accepted' WHERE id = ?", reqRow.id);
-    return res.json({ ok: true, msg: '已接受，新成员加入队伍' });
+    // 通过后自动作废该选手对其他队伍的 pending 申请
+    await store.run("UPDATE team_requests SET status = 'expired' WHERE player_id = ? AND status = 'pending' AND id != ?", reqRow.player_id, reqRow.id);
+    return res.json({ ok: true, msg: '已接受，新成员加入队伍（其其他申请已自动作废）' });
   }
   if (action === 'reject') {
     await store.run("UPDATE team_requests SET status = 'rejected' WHERE id = ?", reqRow.id);
     return res.json({ ok: true, msg: '已拒绝申请' });
   }
-  res.status(400).json({ ok: false, msg: '无效操作（accept / reject）' });
+  res.status(400).json({ ok: false, msg: '无效操作（accept / reject / cancel）' });
+}));
+
+/* 申请人撤销自己的 pending 申请 */
+app.delete('/api/teams/:id/requests/:rid', requireParticipant, wrap(async (req, res) => {
+  const reqRow = await store.get("SELECT * FROM team_requests WHERE id = ? AND player_id = ? AND status = 'pending'", parseInt(req.params.rid, 10), req.user.player_id);
+  if (!reqRow) return res.status(404).json({ ok: false, msg: '申请不存在或已处理' });
+  await store.run("UPDATE team_requests SET status = 'cancelled' WHERE id = ?", reqRow.id);
+  res.json({ ok: true, msg: '已撤销申请' });
 }));
 
 app.post('/api/teams/:id/leave', requireParticipant, wrap(async (req, res) => {
