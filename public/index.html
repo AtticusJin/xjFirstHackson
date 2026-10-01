@@ -1932,7 +1932,8 @@ async function createTeam() {
     closeModal(); toast('小队已创建 ✓'); await loadTeams();
   } catch (e) { err(e.message); }
 }
-function openTeam(id) {
+async function openTeam(id) {
+  try { await loadTeams(); } catch (e) { /* 网络失败则用缓存数据兜底 */ }
   const t = teams.find(x => x.id === id);
   if (!t) return;
   const s = TS[t.project_status] || TS.recruiting;
