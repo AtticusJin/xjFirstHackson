@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS players (
   contact TEXT,
   is_demo INTEGER DEFAULT 0,
   retired INTEGER DEFAULT 0,
-  identity TEXT DEFAULT 'participant'
+  identity TEXT DEFAULT 'participant',
+  gender TEXT DEFAULT 'secret'
 );
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,7 +171,7 @@ const DDL_PG = [
   `CREATE TABLE IF NOT EXISTS players (
     id SERIAL PRIMARY KEY, name TEXT NOT NULL, nickname TEXT, role TEXT, grade TEXT, dorm TEXT,
     intro TEXT, tags TEXT, wechat TEXT, avatar TEXT, claimed_by INTEGER, claim_email TEXT,
-    status TEXT DEFAULT 'unclaimed', self_registered INTEGER DEFAULT 0, contact TEXT, is_demo INTEGER DEFAULT 0, retired INTEGER DEFAULT 0, identity TEXT DEFAULT 'participant')`,
+    status TEXT DEFAULT 'unclaimed', self_registered INTEGER DEFAULT 0, contact TEXT, is_demo INTEGER DEFAULT 0, retired INTEGER DEFAULT 0, identity TEXT DEFAULT 'participant', gender TEXT DEFAULT 'secret')`,
   `CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY, email TEXT UNIQUE, player_id INTEGER, wechat_openid TEXT UNIQUE,
     password_hash TEXT, is_admin INTEGER DEFAULT 0,
@@ -234,6 +235,7 @@ async function migrate() {
       'ALTER TABLE players ADD COLUMN IF NOT EXISTS retired INTEGER DEFAULT 0',
       'ALTER TABLE players ADD COLUMN IF NOT EXISTS is_demo INTEGER DEFAULT 0',
       "ALTER TABLE players ADD COLUMN IF NOT EXISTS identity TEXT DEFAULT 'participant'",
+      "ALTER TABLE players ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT 'secret'",
       'ALTER TABLE waiting_pool ADD COLUMN IF NOT EXISTS note TEXT',
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT'
     ];
@@ -245,6 +247,7 @@ async function migrate() {
       'ALTER TABLE players ADD COLUMN retired INTEGER DEFAULT 0',
       'ALTER TABLE players ADD COLUMN is_demo INTEGER DEFAULT 0',
       "ALTER TABLE players ADD COLUMN identity TEXT DEFAULT 'participant'",
+      "ALTER TABLE players ADD COLUMN gender TEXT DEFAULT 'secret'",
       'ALTER TABLE waiting_pool ADD COLUMN note TEXT',
       'ALTER TABLE users ADD COLUMN password_hash TEXT'
     ];

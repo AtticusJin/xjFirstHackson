@@ -63,7 +63,7 @@ function publicPlayer(p) {
     id: p.id, name: p.name, nickname: p.nickname, role: p.role,
     grade: p.grade, dorm: p.dorm, intro: p.intro, tags: p.tags,
     avatar: p.avatar, status: p.status, self_registered: !!p.self_registered,
-    retired: !!p.retired, identity: p.identity || 'participant'
+    retired: !!p.retired, identity: p.identity || 'participant', gender: p.gender || 'secret'
   };
 }
 
@@ -352,15 +352,16 @@ app.put('/api/me/player', wrap(async (req, res) => {
   const owned = p.claimed_by === user.id;
   if (!owned) return res.status(403).json({ ok: false, msg: '只能编辑自己的资料' });
   const isFree = !!p.self_registered; // 自由注册选手可改姓名；认领选手姓名锁定防冒领
-  const { name, nickname, role, grade, intro, tags, avatar, contact } = req.body || {};
+  const { name, nickname, role, grade, intro, tags, avatar, contact, gender } = req.body || {};
+  const nextGender = (gender && ['secret', 'male', 'female'].includes(gender)) ? gender : 'secret';
   await store.run(`UPDATE players SET
       name = CASE WHEN ? = 1 THEN ? ELSE name END,
-      nickname = ?, role = ?, grade = ?, intro = ?, tags = ?, avatar = ?, contact = ?
+      nickname = ?, role = ?, grade = ?, intro = ?, tags = ?, avatar = ?, contact = ?, gender = ?
     WHERE id = ?`,
     isFree ? 1 : 0, String(name || p.name).trim() || p.name,
     String(nickname ?? '').trim(), String(role ?? '').trim(), String(grade ?? '').trim(),
     String(intro ?? '').trim(), String(tags ?? '').trim(), String(avatar ?? '').trim(),
-    encContact(String(contact ?? '').trim()), p.id);
+    encContact(String(contact ?? '').trim()), nextGender, p.id);
   const np = await store.get('SELECT * FROM players WHERE id = ?', p.id);
   res.json({ ok: true, player: { ...publicPlayer(np), contact: decContact(np.contact) || '' } });
 }));
@@ -1046,7 +1047,7 @@ app.post('/api/admin/players', requireAdmin, wrap(async (req, res) => {
   res.json({ ok: true, id: Number(r.lastInsertRowid) });
 }));
 app.put('/api/admin/players/:id', requireAdmin, wrap(async (req, res) => {
-  const { name, nickname, role, grade, dorm, intro, tags, wechat, avatar, status, contact, identity } = req.body || {};
+  const { name, nickname, role, grade, dorm, intro, tags, wechat, avatar, status, contact, identity, gender } = req.body || {};
   const cur = await store.get('SELECT * FROM players WHERE id = ?', parseInt(req.params.id, 10));
   if (!cur) return res.status(404).json({ ok: false, msg: '选手不存在' });
   const next = {
@@ -1054,11 +1055,12 @@ app.put('/api/admin/players/:id', requireAdmin, wrap(async (req, res) => {
     role: role ?? cur.role, grade: grade ?? cur.grade, dorm: dorm ?? cur.dorm,
     intro: intro ?? cur.intro, tags: tags ?? cur.tags, wechat: wechat ?? cur.wechat,
     avatar: avatar ?? cur.avatar, status: status ?? cur.status,
-    identity: (identity && ['participant', 'judge', 'observer'].includes(identity)) ? identity : (cur.identity || 'participant')
+    identity: (identity && ['participant', 'judge', 'observer'].includes(identity)) ? identity : (cur.identity || 'participant'),
+    gender: (gender && ['secret', 'male', 'female'].includes(gender)) ? gender : (cur.gender || 'secret')
   };
-  await store.run('UPDATE players SET name=?, nickname=?, role=?, grade=?, dorm=?, intro=?, tags=?, wechat=?, avatar=?, status=?, identity=? WHERE id=?',
+  await store.run('UPDATE players SET name=?, nickname=?, role=?, grade=?, dorm=?, intro=?, tags=?, wechat=?, avatar=?, status=?, identity=?, gender=? WHERE id=?',
     next.name, next.nickname || '', next.role || '', next.grade || '', next.dorm || '',
-    next.intro || '', next.tags || '', next.wechat || '', next.avatar || '', next.status || 'unclaimed', next.identity, parseInt(req.params.id, 10));
+    next.intro || '', next.tags || '', next.wechat || '', next.avatar || '', next.status || 'unclaimed', next.identity, next.gender, parseInt(req.params.id, 10));
   if (contact !== undefined && String(contact) !== (decContact(cur.contact) || '')) {
     await store.run('UPDATE players SET contact = ? WHERE id = ?', encContact(String(contact)), parseInt(req.params.id, 10));
   }

@@ -51,6 +51,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .d-view{display:inline-flex;align-items:center;gap:6px;background:rgba(74,222,155,.08);border:1px solid rgba(74,222,155,.35);color:var(--text-2);border-radius:10px;padding:8px 14px;font-size:13px;font-family:var(--mono);cursor:default}
 .d-view svg{color:var(--green);flex:none}
 .friend-tag{font-size:12px;margin-left:4px;filter:drop-shadow(0 0 6px rgba(255,215,90,.7))}
+.idn-tag{display:inline-block;font-family:var(--mono);font-size:9px;color:var(--violet);border:1px solid rgba(196,142,253,.4);padding:1px 7px;border-radius:20px;margin-left:6px;vertical-align:middle}
+.idn-tag.judge{color:var(--amber);border-color:rgba(255,215,90,.45)}
+.idn-tag.observer{color:var(--cyan);border-color:rgba(94,234,212,.4)}
+.g-ic{margin-left:4px;font-size:12px;font-weight:800;vertical-align:middle;line-height:1}
+.g-m{color:#5eb1ff;text-shadow:0 0 6px rgba(94,177,255,.4)}
+.g-f{color:#ff7eb3;text-shadow:0 0 6px rgba(255,126,179,.4)}
 /* 全部成员资料：筛选区 */
 .plist-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
 .plist-sort{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
@@ -461,6 +467,7 @@ footer{margin-top:28px;text-align:center;font-family:var(--mono);font-size:9px;c
 const API = '/api';
 let TOKEN = localStorage.getItem('xjhack_token') || '';
 let ME = null;
+let GENDER_SEL = 'secret';
 let players = [], schedules = [], announcements = [], teams = [];
 let claimToken = null, claimPlayer = null, emailInput = '', devCode = '';
 let curTab = 'home';
@@ -743,7 +750,7 @@ function renderGrid() {
       <div class="pc-top">
         ${p.avatar ? `<img class="pc-avatar" src="${esc(p.avatar)}" alt="" loading="lazy" decoding="async">` : `<div class="pc-avatar" style="background:var(--card);border:1px solid var(--line)"></div>`}
         <div class="pc-id">
-          <div class="pc-name" title="${esc(nm(p.name))}" style="font-size:${(()=>{const n=[...(nm(p.name)||'')].length;return n<=10?14:n<=12?12:n<=15?11:10.5})()}px">${esc(nm(p.name))}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
+          <div class="pc-name" title="${esc(nm(p.name))}" style="font-size:${(()=>{const n=[...(nm(p.name)||'')].length;return n<=10?14:n<=12?12:n<=15?11:10.5})()}px">${esc(nm(p.name))}${genderIcon(p.gender)}${p.is_friend ? `<span class="friend-tag" title="互为好友">💛</span>` : ''}</div>
           ${p.nickname ? `<div class="pc-handle">@${esc(nm(p.nickname))}</div>` : ''}
         </div>
       </div>
@@ -810,7 +817,7 @@ function openPlayerDetail(pid) {
     <div class="d-card">
       <div class="d-top">
         ${p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : `<div style="width:64px;height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);flex:none"></div>`}
-        <div class="d-id"><b>${esc(nm(p.name))}</b>${p.nickname ? `<span class="d-nick">@${esc(nm(p.nickname))}</span>` : ''}${p.is_friend ? '<span class="friend-tag big" title="你们互相点赞，互为好友">💛 互为好友</span>' : ''}</div>
+        <div class="d-id"><b>${esc(nm(p.name))}${genderIcon(p.gender)}</b>${p.nickname ? `<span class="d-nick">@${esc(nm(p.nickname))}</span>` : ''}${p.is_friend ? '<span class="friend-tag big" title="你们互相点赞，互为好友">💛 互为好友</span>' : ''}</div>
         <div class="d-roles">${roleList(p.role).map(r => `<span class="d-role">${esc(r)}</span>`).join('') || '<span class="d-role">未标注</span>'}</div>
       </div>
       ${(p.grade || tags.length) ? `<div class="d-meta">${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}${tags.map(t => `<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
@@ -894,7 +901,7 @@ function plistRow(p) {
   const roles = roleList(p.role);
   return `<div class="ann t-member" onclick="openPlayerDetail(${p.id})"><div class="a-top">
     ${p.avatar ? `<img src="${esc(p.avatar)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
-    <span class="a-title">${esc(nm(p.name))}</span>
+    <span class="a-title">${esc(nm(p.name))}${genderIcon(p.gender)}</span>
     ${p.is_friend ? '<span class="friend-tag" title="互为好友">💛</span>' : ''}
     ${p.nickname ? `<span style="font-size:10px;color:var(--text-3)">@${esc(nm(p.nickname))}</span>` : ''}
     ${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}
@@ -1074,7 +1081,7 @@ function renderMe() {
     <div class="me-card">
       ${p && p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : ''}
       <div class="who">
-        ${p ? `<b>${esc(p.name)}</b>${p.self_registered ? ' <span class="tag-free">新注册选手</span>' : ''}
+        ${p ? `<b>${esc(p.name)}</b>${p.self_registered ? ' <span class="tag-free">新注册选手</span>' : ''}${p.identity && p.identity !== 'participant' ? `<span class="idn-tag ${p.identity}">${p.identity === 'judge' ? '评委' : '观察员'}</span>` : ''}
           <span class="role">${esc(roleList(p.role).join(' / ') || '未标注方向')}${p.grade ? ' · ' + esc(p.grade) : ''}</span>
 ${p.intro ? '' : '<p>还没有自我介绍，去完善你的资料吧。</p>'}`
         : `<b>已登录</b><p>当前账号（${esc(ME.user.email)}）还没有选手身份，请先认领或注册。</p>`}
@@ -1414,8 +1421,18 @@ const TAG_TPL = ['Python', 'Go', 'C++', 'Java', '前端', 'UI 设计', '产品',
 let TAG_LIST = [];
 /* 方向（可多选，逗号分隔存储） */
 const ROLE_OPTS = ['开发', '设计', '产品', '硬件', '运营', '教育', 'AI', '其他'];
+function genderIcon(g) {
+  if (g === 'male') return '<span class="g-ic g-m" title="男">♂</span>';
+  if (g === 'female') return '<span class="g-ic g-f" title="女">♀</span>';
+  return '';
+}
 function roleList(role) { return (role || '').split(/[,，、]/).map(x => x.trim()).filter(Boolean); }
 function toggleRole(el) { el.classList.toggle('on'); }
+function pickGender(v, el) {
+  GENDER_SEL = v;
+  const box = el.closest('.role-chips');
+  if (box) box.querySelectorAll('.role-chip').forEach(c => c.classList.toggle('on', c === el));
+}
 function roleChips(role) {
   const sel = roleList(role);
   return ROLE_OPTS.map(r => `<span class="role-chip${sel.includes(r) ? ' on' : ''}" onclick="toggleRole(this)">${esc(r)}</span>`).join('');
@@ -1583,6 +1600,7 @@ function saveShareCard() {
 function openEditProfile() {
   if (!ME || !ME.user.player) return toast('请先登录', true);
   const p = ME.user.player;
+  GENDER_SEL = p.gender || 'secret';
   TAG_LIST = (p.tags || '').split(/\s+/).filter(Boolean);
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
@@ -1593,6 +1611,8 @@ function openEditProfile() {
     <div class="field"><label>方向（可多选）</label>
       <div class="role-chips">${roleChips(p.role)}</div></div>
     <div class="field"><label>年级 / 学校（可选）</label><input id="pfGrade" placeholder="例如：高二 / 浙大大二" value="${esc(p.grade || '')}"></div>
+    <div class="field"><label>性别（默认保密）</label>
+      <div class="role-chips">${[['secret', '保密'], ['male', '♂ 男'], ['female', '♀ 女']].map(([v, l]) => `<span class="role-chip${(p.gender || 'secret') === v ? ' on' : ''}" onclick="pickGender('${v}', this)">${l}</span>`).join('')}</div></div>
     <div class="field"><label>自我介绍 / 高光</label><textarea id="pfIntro">${esc(p.intro || '')}</textarea></div>
     <div class="field"><label>技能标签</label>
       <div class="tag-edit" id="tagBox"></div>
@@ -1668,6 +1688,7 @@ async function saveProfile() {
     intro: document.getElementById('pfIntro').value.trim(),
     tags: TAG_LIST.join(' '),
     contact: document.getElementById('pfContact').value.trim(),
+    gender: GENDER_SEL,
     avatar
   };
   if (!body.name) return err('姓名不能为空');
@@ -1746,7 +1767,7 @@ function openTeam(id) {
     <div class="me-list">${t.members.map(m => `
       <div class="ann t-member" onclick="openPlayerDetail(${m.id})"><div class="a-top">
         ${m.avatar ? `<img src="${esc(m.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
-        <span class="a-title">${esc(m.name)}</span>
+        <span class="a-title">${esc(m.name)}${genderIcon(m.gender)}</span>
         <span style="font-size:10px;color:var(--text-3)">${esc(m.role || '')}</span>
         ${m.id === t.leader?.id ? `<span class="a-tag" style="background:rgba(255,180,84,.1);color:var(--amber);border-color:rgba(255,180,84,.3)">队长</span>` : ''}
       </div></div>`).join('')}</div>
