@@ -51,6 +51,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .d-view{display:inline-flex;align-items:center;gap:6px;background:rgba(74,222,155,.08);border:1px solid rgba(74,222,155,.35);color:var(--text-2);border-radius:10px;padding:8px 14px;font-size:13px;font-family:var(--mono);cursor:default}
 .d-view svg{color:var(--green);flex:none}
 .friend-tag{font-size:12px;margin-left:4px;filter:drop-shadow(0 0 6px rgba(255,215,90,.7))}
+/* 全部成员资料：筛选区 */
+.plist-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+.plist-sort{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+.ps-item{font-size:11px;padding:5px 11px;border:1px solid var(--line);border-radius:14px;color:var(--text-3);cursor:pointer;font-family:var(--mono);background:rgba(255,255,255,.02);transition:all .15s}
+.ps-item:active{transform:scale(.94)}
+.ps-item.on{color:var(--cyan);border-color:rgba(94,234,212,.4);background:rgba(94,234,212,.08)}
 .like-btn.shake{animation:xjshake .35s ease}
 @keyframes xjshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
 .d-like-bar{display:flex;align-items:center;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
@@ -632,6 +638,8 @@ function refreshFriendUI(pid) {
     if (p.is_friend && !tag) card.insertAdjacentHTML('beforeend', '<span class="friend-tag" title="互为好友">💛</span>');
     if (!p.is_friend && tag) tag.remove();
   }
+  /* 成员列表弹窗打开中 → 重渲染同步 💛 */
+  if (document.getElementById('plistBody')) plistRender();
   /* 详情弹窗正打开该选手 → 重开刷新 💛 徽标 */
   if (window.__detailPid === pid) openPlayerDetail(pid);
   renderUser();
@@ -826,25 +834,111 @@ function openPlayerDetail(pid) {
       ${claimed ? '' : `<div class="btn-row"><button class="btn primary" onclick="startClaim(${p.id})">认领身份 →</button></div>`}
     </div>`);
 }
+/* ===== 全部成员资料：搜索 + 方向筛选 + 排序 + 行内互动 ===== */
+const __plist = { q: '', roles: new Set(), sort: 'default' };
 function openPlayersList() {
   const list = players.filter(p => !p.retired);
   const sub = document.getElementById('plazaEntrySub');
   if (sub) sub.textContent = `${list.length} 位选手公开资料 · 点开查看`;
+  __plist.q = ''; __plist.roles = new Set(); __plist.sort = 'default';
   modal(`
     <button class="modal-close" onclick="closeModal()">×</button>
-    <h3>全部成员资料 <span class="n">${list.length}</span></h3>
-    <p class="sub">${ME ? '点击选手查看完整资料与联系方式' : '登录后可查看联系方式，点击选手查看资料'}</p>
-    <div class="me-list">${list.map(p => `
-      <div class="ann t-member" onclick="openPlayerDetail(${p.id})"><div class="a-top">
-        ${p.avatar ? `<img src="${esc(p.avatar)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
-        <span class="a-title">${esc(p.name)}</span>
-        ${p.nickname ? `<span style="font-size:10px;color:var(--text-3)">@${esc(p.nickname)}</span>` : ''}
-        ${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}
-        ${roleList(p.role).slice(0, 2).map(r => `<span class="d-role">${esc(r)}</span>`).join('')}
-      </div>
-      <div class="a-body" style="font-size:11px;color:var(--text-3)">${p.intro ? esc(p.intro).slice(0, 60) : '暂无自我介绍'}</div>
-      </div>`).join('') || '<div class="empty">暂无公开资料选手</div>'}
-    </div>`);
+    <h3>全部成员资料 <span class="n" id="plistCount"></span></h3>
+    <p class="sub" id="plistSub">${ME ? '点击选手查看完整资料与联系方式' : '登录后可查看联系方式，点击选手查看资料'}</p>
+    <div class="search-box" style="margin:8px 0"><span class="s-ico">⌕</span><input id="plistSearch" placeholder="搜索姓名 / 昵称 / 方向" autocomplete="off" oninput="plistApply()"><button class="s-clear" id="plistClear" onclick="plistClearSearch()">×</button></div>
+    <div class="plist-chips" id="plistChips">${['全部', ...ROLE_OPTS].map(r => `<span class="role-chip${r === '全部' ? ' on' : ''}" data-role="${r}" onclick="plistToggleRole(this)">${esc(r)}</span>`).join('')}</div>
+    <div class="plist-sort" id="plistSort">
+      <span class="ps-item on" data-sort="default" onclick="plistSetSort('default')">默认</span>
+      <span class="ps-item" data-sort="hot" onclick="plistSetSort('hot')">🔥 最热</span>
+      <span class="ps-item" data-sort="viewed" onclick="plistSetSort('viewed')">👁 被看最多</span>
+      <span class="ps-item" data-sort="claimed" onclick="plistSetSort('claimed')">✓ 已认领</span>
+    </div>
+    <div class="me-list" id="plistBody" style="max-height:48vh;overflow-y:auto"></div>
+  `);
+  plistRender();
+}
+function plistFiltered() {
+  const kw = __plist.q.trim().toLowerCase();
+  return players.filter(p => {
+    if (p.retired) return false;
+    if (__plist.roles.size) {
+      const rs = new Set(roleList(p.role));
+      const hit = [...__plist.roles].some(r => r === '其他' ? ROLE_OPTS.slice(0, -1).every(o => !rs.has(o)) : rs.has(r));
+      if (!hit) return false;
+    }
+    if (kw) {
+      const hay = `${p.name} ${p.nickname || ''} ${p.role || ''} ${p.tags || ''}`.toLowerCase();
+      if (!hay.includes(kw)) return false;
+    }
+    return true;
+  });
+}
+function plistRender() {
+  const body = document.getElementById('plistBody');
+  if (!body) return;
+  const st = body.scrollTop;
+  let list = plistFiltered();
+  const cnt = document.getElementById('plistCount');
+  if (cnt) cnt.textContent = list.length;
+  const sub = document.getElementById('plistSub');
+  if (sub) sub.textContent = `${list.length} 位选手${ME ? ' · 点击查看完整资料与联系方式' : ' · 登录后可查看联系方式'}`;
+  if (__plist.sort === 'hot') list.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+  else if (__plist.sort === 'viewed') list.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+  else if (__plist.sort === 'claimed') list.sort((a, b) => ((b.status === 'claimed') - (a.status === 'claimed')));
+  else list.sort((a, b) => ((b.name === '金熙林') - (a.name === '金熙林')) || 0);
+  body.innerHTML = list.length ? list.map(plistRow).join('') : '<div class="empty">没有匹配的选手<br>换个方向或清空搜索试试</div>';
+  body.scrollTop = st;
+}
+function plistRow(p) {
+  const claimed = p.status === 'claimed';
+  const roles = roleList(p.role);
+  return `<div class="ann t-member" onclick="openPlayerDetail(${p.id})"><div class="a-top">
+    ${p.avatar ? `<img src="${esc(p.avatar)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" loading="lazy" decoding="async">` : ''}
+    <span class="a-title">${esc(nm(p.name))}</span>
+    ${p.is_friend ? '<span class="friend-tag" title="互为好友">💛</span>' : ''}
+    ${p.nickname ? `<span style="font-size:10px;color:var(--text-3)">@${esc(nm(p.nickname))}</span>` : ''}
+    ${p.grade ? `<span class="d-tag">${esc(p.grade)}</span>` : ''}
+    ${roles.slice(0, 2).map(r => `<span class="d-role">${esc(r)}</span>`).join('')}
+    ${ME && p.contact ? '<span class="d-tag" style="background:rgba(74,222,155,.1);color:var(--green)">📮 联系方式</span>' : ''}
+    ${claimed ? '' : '<span class="d-tag" style="background:rgba(255,215,90,.1);color:var(--amber)">□ 可认领</span>'}
+  </div>
+  <div class="a-body" style="font-size:11px;color:var(--text-3)">${p.intro ? esc(p.intro).slice(0, 60) : '暂无自我介绍'}</div>
+  <div class="a-foot" style="display:flex;gap:6px;align-items:center;margin-top:8px">
+    <span class="pc-like${p.liked_today ? ' liked' : ''}" data-plbtn="${p.id}" onclick="event.stopPropagation(); togglePlayerLike(${p.id})" title="给 TA 点赞">
+      <span class="pl-ico">${p.liked_today ? '♥' : '♡'}</span><span class="pl-num" data-pl="${p.id}">${p.like_count || 0}</span>
+    </span>
+    <span class="pc-view" title="资料被查看次数"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span class="pv-num" data-pv="${p.id}">${p.view_count || 0}</span></span>
+  </div>
+  </div>`;
+}
+function plistToggleRole(el) {
+  const r = el.dataset.role;
+  const all = document.querySelector('#plistChips .role-chip[data-role="全部"]');
+  if (r === '全部') {
+    __plist.roles = new Set();
+    document.querySelectorAll('#plistChips .role-chip').forEach(c => c.classList.toggle('on', c === el));
+  } else {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) __plist.roles.add(r); else __plist.roles.delete(r);
+    if (all) all.classList.remove('on');
+    if (!__plist.roles.size && all) all.classList.add('on');
+  }
+  plistRender();
+}
+function plistSetSort(s) {
+  __plist.sort = s;
+  document.querySelectorAll('#plistSort .ps-item').forEach(i => i.classList.toggle('on', i.dataset.sort === s));
+  plistRender();
+}
+function plistClearSearch() {
+  __plist.q = '';
+  const inp = document.getElementById('plistSearch');
+  if (inp) inp.value = '';
+  plistRender();
+}
+function plistApply() {
+  __plist.q = document.getElementById('plistSearch').value;
+  plistRender();
 }
 function onSearch() {
   const inp = document.getElementById('playerSearch');
@@ -1938,6 +2032,8 @@ document.getElementById('modal').addEventListener('click', e => { if (e.target.i
   renderStats();
   updateBadge();
   showTab('home');
+  /* 调试：带 #testplist 打开时自动弹出成员列表 */
+  if (location.hash === '#testplist') setTimeout(openPlayersList, 1500);
   document.getElementById('playerSearch')?.addEventListener('input', onSearch);
 })();
 </script>
