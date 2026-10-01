@@ -211,13 +211,27 @@ app.post('/api/players/:id/like', wrap(async (req, res) => {
   if (!me) return res.status(401).json({ ok: false, msg: '登录后即可点赞' });
   const pid = Number(req.params.id);
   if (!pid) return res.status(400).json({ ok: false, msg: '参数错误' });
+  if (me.player_id && me.player_id === pid) return res.json({ ok: false, msg: '不能给自己的资料点赞哦' });
   const t = bjToday();
   const countOf = async () => (await store.get('SELECT COUNT(*) AS c FROM player_likes WHERE target_id = ?', pid)).c;
+  /* 是否互为好友：我赞过 pid 且 pid 绑定的用户赞过我（跨天累计） */
+  const isFriendNow = async () => {
+    const a = await store.get('SELECT 1 FROM player_likes WHERE user_id = ? AND target_id = ?', me.id, pid);
+    if (!a) return false;
+    const b = await store.get('SELECT 1 FROM player_likes pl JOIN users u ON u.id = pl.user_id WHERE pl.target_id = ? AND u.player_id = ?', me.player_id, pid);
+    return !!b;
+  };
   const mine = await store.get('SELECT id FROM player_likes WHERE target_id = ? AND user_id = ? AND like_date = ?', pid, me.id, t);
-  if (mine) return res.json({ ok: true, like_count: await countOf(), liked_today: true, already: true });
+  if (mine) {
+    /* 当天已赞 → 撤销（再点一次取消） */
+    const wasFriend = await isFriendNow();
+    await store.run('DELETE FROM player_likes WHERE id = ?', mine.id);
+    const nowFriend = await isFriendNow();
+    return res.json({ ok: true, like_count: await countOf(), liked_today: false, unliked: true, became_unfriend: wasFriend && !nowFriend });
+  }
   try { await store.run('INSERT INTO player_likes (target_id, user_id, like_date) VALUES (?, ?, ?)', pid, me.id, t); }
   catch (e) { return res.json({ ok: true, like_count: await countOf(), liked_today: true, already: true }); }
-  res.json({ ok: true, like_count: await countOf(), liked_today: true, already: false });
+  res.json({ ok: true, like_count: await countOf(), liked_today: true, already: false, became_friend: await isFriendNow() });
 }));
 /* 头像上传：base64 → 本地 public/uploads/avatars（前端已压缩到 ≤512px） */
 app.post('/api/upload/avatar', requirePlayer, express.json({ limit: '6mb' }), wrap(async (req, res) => {

@@ -584,16 +584,57 @@ async function togglePlayerLike(pid) {
   if (!ME) { toast('登录后即可点赞'); return; }
   const p = players.find(x => x.id === pid);
   if (!p) return;
-  if (p.liked_today) { toast('今天已经给 TA 点过赞啦 ♥'); return; }
+  if (p.liked_today) {
+    /* 已赞 → 撤销需二次确认（防手误） */
+    askConfirm('撤销今天的点赞', '今天已经给 TA 点过赞了。撤销后可以重新点赞；若你们因此不再互相点赞，好友关系也会解除。确定撤销吗？', '确认撤销', `doUnlikePlayer(${pid})`);
+    return;
+  }
   try {
     const d = await api('/players/' + pid + '/like', { method: 'POST' });
     if (d.ok) {
       p.like_count = d.like_count; p.liked_today = true;
       updateLikeUI(pid, d.like_count, true);
       burstHeartsFromEl(document.querySelector(`[data-plbtn="${pid}"]`));
-      toast('点赞成功 ♥');
-    }
+      if (d.became_friend) {
+        p.is_friend = true;
+        refreshFriendUI(pid);
+        toast('💛 你们互为好友啦！');
+      } else {
+        toast('点赞成功 ♥');
+      }
+    } else if (d.msg) { toast(esc(d.msg), true); }
   } catch (e) { toast('点赞失败：' + esc(e.message), true); }
+}
+async function doUnlikePlayer(pid) {
+  const p = players.find(x => x.id === pid);
+  if (!p) return;
+  try {
+    const d = await api('/players/' + pid + '/like', { method: 'POST' });
+    if (d.ok) {
+      p.like_count = d.like_count; p.liked_today = false;
+      updateLikeUI(pid, d.like_count, false);
+      if (d.became_unfriend && p.is_friend) {
+        p.is_friend = false;
+        refreshFriendUI(pid);
+        toast('已撤销点赞，好友关系解除');
+      } else {
+        toast('已撤销点赞');
+      }
+    } else if (d.msg) { toast(esc(d.msg), true); }
+  } catch (e) { toast('操作失败：' + esc(e.message), true); }
+}
+function refreshFriendUI(pid) {
+  const p = players.find(x => x.id === pid);
+  if (!p) return;
+  const card = document.querySelector(`.player-card[data-id="${pid}"] .pc-name`);
+  if (card) {
+    const tag = card.querySelector('.friend-tag');
+    if (p.is_friend && !tag) card.insertAdjacentHTML('beforeend', '<span class="friend-tag" title="互为好友">💛</span>');
+    if (!p.is_friend && tag) tag.remove();
+  }
+  /* 详情弹窗正打开该选手 → 重开刷新 💛 徽标 */
+  if (window.__detailPid === pid) openPlayerDetail(pid);
+  renderUser();
 }
 function updateLikeUI(pid, count, liked) {
   document.querySelectorAll(`[data-pl="${pid}"]`).forEach(el => { el.textContent = count; });
@@ -741,6 +782,7 @@ async function copyText(t, msg) {
 function openPlayerDetail(pid) {
   const p = players.find(x => x.id === pid);
   if (!p) return;
+  window.__detailPid = pid;
   // 资料被查看：上报 +1 并即时刷新卡片与弹窗数字（同设备 5 分钟去重，服务端裁决）
   api('/players/' + pid + '/view', { method: 'POST' }).then(d => {
     if (d && d.ok) {
