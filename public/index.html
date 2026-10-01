@@ -1537,6 +1537,19 @@ function shareCard() {
     <div class="btn-row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveShareCard()">⬇ 保存到相册</button></div>`);
   setTimeout(() => drawShareCard(p), 60);
 }
+/* XJHACK 品牌 logo：渐变 + 辉光 + 字母间距 */
+function drawXjLogo(ctx, cx, y) {
+  const letters = [...'XJHACK'], size = 48, gap = 10;
+  const totalW = letters.reduce((a, c) => a + ctx.measureText(c).width, 0) + gap * (letters.length - 1);
+  const lg = ctx.createLinearGradient(cx - totalW / 2, 0, cx + totalW / 2, 0);
+  lg.addColorStop(0, '#46f0c8'); lg.addColorStop(.55, '#8ef2dd'); lg.addColorStop(1, '#8b7cff');
+  ctx.save();
+  ctx.shadowColor = 'rgba(70,240,200,.5)'; ctx.shadowBlur = 20;
+  ctx.font = 'bold ' + size + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = lg;
+  let x = cx - totalW / 2;
+  for (const ch of letters) { ctx.fillText(ch, x + ctx.measureText(ch).width / 2, y); x += ctx.measureText(ch).width + gap; }
+  ctx.restore();
+}
 function drawShareCard(p, noAvatar) {
   const c = document.getElementById('shareCanvas'); if (!c) return;
   const ctx = c.getContext('2d');
@@ -1570,7 +1583,7 @@ function drawShareCard(p, noAvatar) {
   ctx.strokeStyle = 'rgba(70,240,200,.55)'; ctx.lineWidth = 6; ctx.strokeRect(24, 24, W - 48, H - 48);
   ctx.strokeStyle = 'rgba(139,124,255,.25)'; ctx.lineWidth = 1; ctx.strokeRect(38, 38, W - 76, H - 76);
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 48px sans-serif'; ctx.fillText('XJHACK', cx, 112);
+  drawXjLogo(ctx, cx, 112);
   ctx.fillStyle = '#c9d1e5'; ctx.font = '26px sans-serif'; ctx.fillText('学军首届黑客松 · 组队名片', cx, 160);
   const cyAv = 306, R = 104;
   const drawRest = () => {
@@ -1601,10 +1614,14 @@ function drawShareCard(p, noAvatar) {
       introLines.forEach((l, i) => ctx.fillText(l, 70, yIntro + i * 42));
     }
     ctx.textAlign = 'center';
+    // 底部网址高亮条
+    ctx.beginPath(); ctx.roundRect(cx - 250, H - 160, 500, 108, 16);
+    ctx.fillStyle = 'rgba(70,240,200,.08)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(70,240,200,.45)'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 34px monospace';
-    ctx.fillText('http://47.76.118.161/', cx, H - 150);
+    ctx.fillText('http://47.76.118.161/', cx, H - 114);
     ctx.fillStyle = '#8b94a8'; ctx.font = '22px sans-serif';
-    ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 104);
+    ctx.fillText('打开网址 · 加入学军首届黑客松', cx, H - 74);
   };
   const drawAvatar = (img) => {
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cyAv, R, 0, Math.PI * 2);
@@ -1695,7 +1712,7 @@ function drawTeamShareCard(t, noAvatar) {
   ctx.strokeStyle = 'rgba(70,240,200,.55)'; ctx.lineWidth = 6; ctx.strokeRect(24, 24, W - 48, H - 48);
   ctx.strokeStyle = 'rgba(139,124,255,.25)'; ctx.lineWidth = 1; ctx.strokeRect(38, 38, W - 76, H - 76);
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#70f8d8'; ctx.font = 'bold 48px sans-serif'; ctx.fillText('XJHACK', cx, 112);
+  drawXjLogo(ctx, cx, 112);
   ctx.fillStyle = '#c9d1e5'; ctx.font = '26px sans-serif'; ctx.fillText('学军首届黑客松 · 队伍招募', cx, 160);
   const drawRest = () => {
     // 队名（自适应）
