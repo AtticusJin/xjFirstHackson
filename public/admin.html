@@ -126,7 +126,7 @@ td .btn{width:auto;padding:5px 12px;font-size:11px}
       <h3>选手管理</h3>
       <div class="sch-box"><input id="playerSearch" placeholder="🔍 按姓名 / 昵称 / 认领邮箱搜索…" oninput="renderPlayers()"></div>
       <div class="table-scroll">
-      <table><thead><tr><th style="width:44px">ID</th><th style="width:100px">姓名</th><th style="width:90px">方向</th><th style="width:110px">年级</th><th style="width:90px">宿舍</th><th style="width:130px">认领人</th><th style="width:80px">状态</th><th style="width:150px">操作</th></tr></thead>
+      <table><thead><tr><th style="width:44px">ID</th><th style="width:100px">姓名</th><th style="width:90px">方向</th><th style="width:110px">年级</th><th style="width:90px">宿舍</th><th style="width:130px">认领人</th><th style="width:80px">状态</th><th style="width:90px">身份</th><th style="width:150px">操作</th></tr></thead>
       <tbody id="playerBody"></tbody></table>
       </div>
       <div class="add-form" id="addPlayerForm">
@@ -267,7 +267,7 @@ function renderRequests() {
       <td style="font-family:var(--mono);color:var(--text-3)">${esc(r.created_at || '')}</td>
       <td>${r.status === 'pending' ? '<span class="badge pending">待处理</span>' : r.status === 'accepted' ? '<span class="badge bound">已通过</span>' : '<span class="badge released">已拒绝</span>'}</td>
       <td>${r.status === 'pending' ? `<div class="row-actions"><button class="btn save" onclick="approveReq(${r.id})">通过</button><button class="btn del" onclick="rejectReq(${r.id})">拒绝</button></div>` : '<span style="color:var(--text-3)">已处理</span>'}</td>
-    </tr>`).join('') : '<tr><td colspan="8" class="empty">暂无组队申请</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="9" class="empty">暂无组队申请</td></tr>';
 }
 async function approveReq(id) {
   const r = (DATA.requests || []).find(x => x.id === id);
@@ -393,17 +393,18 @@ function renderPlayers() {
       <td>${esc(p.dorm || '—')}</td>
       <td style="font-family:var(--mono);color:var(--text-2)">${p.status === 'claimed' ? (esc(p.claim_email || '') || '<span style="color:var(--amber)">已认领</span>') : '<span style="color:var(--text-3)">—</span>'}</td>
       <td><select class="f-status">${['unclaimed','claimed'].map(x => `<option value="${x}" ${p.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
+      <td><select class="f-identity">${[['participant','参赛选手'],['judge','评委'],['observer','观察员']].map(([v, l]) => `<option value="${v}" ${(p.identity || 'participant') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
       <td><div class="row-actions">
         <button class="btn save" onclick="savePlayer(${p.id}, this)">保存</button>
         <button class="btn" onclick="showPlayerDetail(${p.id})">详情</button>
         <button class="btn del" onclick="deletePlayer(${p.id}, '${esc(p.name)}')">删</button>
       </div></td>
-    </tr>`).join('') : '<tr><td colspan="8" class="empty">' + (q ? '没有匹配的选手' : '暂无选手，用下方表单补录或导入 CSV') + '</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="9" class="empty">' + (q ? '没有匹配的选手' : '暂无选手，用下方表单补录或导入 CSV') + '</td></tr>';
 }
 async function savePlayer(id, btn) {
   const tr = btn.closest('tr');
   btn.disabled = true;
-  const body = { role: tr.querySelector('.f-role').value, grade: tr.querySelector('.f-grade').value, dorm: tr.querySelector('.f-dorm').value, status: tr.querySelector('.f-status').value };
+  const body = { role: tr.querySelector('.f-role').value, grade: tr.querySelector('.f-grade').value, dorm: tr.querySelector('.f-dorm').value, status: tr.querySelector('.f-status').value, identity: tr.querySelector('.f-identity').value };
   try { await api('/admin/players/' + id, { method: 'PUT', body: JSON.stringify(body) }); toast('选手已更新'); await load(); }
   catch (e) { toast(e.message, true); btn.disabled = false; }
 }

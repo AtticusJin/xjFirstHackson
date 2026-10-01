@@ -63,7 +63,7 @@ function publicPlayer(p) {
     id: p.id, name: p.name, nickname: p.nickname, role: p.role,
     grade: p.grade, dorm: p.dorm, intro: p.intro, tags: p.tags,
     avatar: p.avatar, status: p.status, self_registered: !!p.self_registered,
-    retired: !!p.retired
+    retired: !!p.retired, identity: p.identity || 'participant'
   };
 }
 
@@ -161,7 +161,7 @@ app.get('/api/avatar-proxy', wrap(async (req, res) => {
 }));
 
 app.get('/api/players', wrap(async (req, res) => {
-  const list = await store.all('SELECT * FROM players WHERE retired != 1 AND (is_demo IS NULL OR is_demo != 1) ORDER BY id');
+  const list = await store.all("SELECT * FROM players WHERE retired != 1 AND (is_demo IS NULL OR is_demo != 1) AND (identity IS NULL OR identity = 'participant') ORDER BY id");
   const me = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
   const likeRows = await store.all('SELECT target_id, COUNT(*) AS c FROM player_likes GROUP BY target_id');
   const likeMap = new Map(likeRows.map(r => [r.target_id, r.c]));
@@ -694,6 +694,21 @@ async function requirePlayer(req, res, next) {
     next();
   } catch (e) { res.status(401).json({ ok: false, msg: '未登录' }); }
 }
+/* 组队守卫：仅参赛选手可创建/加入队伍，评委与观察员不可参与组队 */
+async function requireParticipant(req, res, next) {
+  try {
+    const user = await getUserByToken(req.headers.authorization?.replace('Bearer ', ''));
+    if (!user) return res.status(401).json({ ok: false, msg: '未登录' });
+    if (!user.player_id) return res.status(403).json({ ok: false, msg: '需要先认领或注册选手身份，才能参与组队' });
+    const p = await store.get('SELECT identity FROM players WHERE id = ?', user.player_id);
+    const idn = (p && p.identity) || 'participant';
+    if (idn !== 'participant') {
+      return res.status(403).json({ ok: false, msg: idn === 'judge' ? '评委身份无法参与组队' : '观察员身份无法参与组队' });
+    }
+    req.user = user;
+    next();
+  } catch (e) { res.status(401).json({ ok: false, msg: '未登录' }); }
+}
 
 async function teamDetail(team, viewerId) {
   const members = await store.all('SELECT p.id, p.name, p.nickname, p.role, p.avatar FROM team_members m JOIN players p ON p.id = m.player_id WHERE m.team_id = ? ORDER BY m.id', team.id);
@@ -720,7 +735,7 @@ app.get('/api/teams', wrap(async (req, res) => {
   res.json({ ok: true, teams: await Promise.all(list.map(t => teamDetail(t, viewer?.player_id || null))) });
 }));
 
-app.get('/api/teams/mine', requirePlayer, wrap(async (req, res) => {
+app.get('/api/teams/mine', requireParticipant, wrap(async (req, res) => {
   const pid = req.user.player_id;
   const led = await store.all('SELECT * FROM teams WHERE leader_id = ? AND status != ? ORDER BY id DESC', pid, 'disbanded');
   const joined = await store.all('SELECT t.* FROM teams t JOIN team_members m ON m.team_id = t.id WHERE m.player_id = ? AND t.leader_id != ? AND t.status != ? ORDER BY t.id DESC', pid, pid, 'disbanded');
@@ -734,7 +749,7 @@ app.get('/api/teams/mine', requirePlayer, wrap(async (req, res) => {
   });
 }));
 
-app.post('/api/teams', requirePlayer, wrap(async (req, res) => {
+app.post('/api/teams', requireParticipant, wrap(async (req, res) => {
   const { name, slogan, role_needs, intro, project_name, project_desc } = req.body || {};
   if (!name || !String(name).trim()) return res.status(400).json({ ok: false, msg: '队伍名称不能为空' });
   const r = await store.run('INSERT INTO teams (name, slogan, role_needs, intro, project_name, project_desc, project_status, leader_id, status) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id',
@@ -745,7 +760,7 @@ app.post('/api/teams', requirePlayer, wrap(async (req, res) => {
   res.json({ ok: true, id: tid });
 }));
 
-app.put('/api/teams/:id', requirePlayer, wrap(async (req, res) => {
+app.put('/api/teams/:id', requireParticipant, wrap(async (req, res) => {
   const team = await store.get('SELECT * FROM teams WHERE id = ?', parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在' });
   if (team.leader_id !== req.user.player_id) return res.status(403).json({ ok: false, msg: '只有队长可以编辑队伍' });
@@ -759,7 +774,7 @@ app.put('/api/teams/:id', requirePlayer, wrap(async (req, res) => {
   res.json({ ok: true, team: await teamDetail(await store.get('SELECT * FROM teams WHERE id = ?', team.id), req.user.player_id) });
 }));
 
-app.post('/api/teams/:id/join', requirePlayer, wrap(async (req, res) => {
+app.post('/api/teams/:id/join', requireParticipant, wrap(async (req, res) => {
   const team = await store.get("SELECT * FROM teams WHERE id = ? AND status != 'disbanded'", parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在或已解散' });
   if (team.project_status === 'finished' || team.project_status === 'judging') return res.status(409).json({ ok: false, msg: '队伍已进入项目阶段，暂不接受加入' });
@@ -773,7 +788,7 @@ app.post('/api/teams/:id/join', requirePlayer, wrap(async (req, res) => {
   res.json({ ok: true, msg: '申请已提交，等待队长确认' });
 }));
 
-app.post('/api/teams/:id/requests/:rid', requirePlayer, wrap(async (req, res) => {
+app.post('/api/teams/:id/requests/:rid', requireParticipant, wrap(async (req, res) => {
   const team = await store.get("SELECT * FROM teams WHERE id = ? AND status != 'disbanded'", parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在' });
   if (team.leader_id !== req.user.player_id) return res.status(403).json({ ok: false, msg: '只有队长可以处理申请' });
@@ -793,7 +808,7 @@ app.post('/api/teams/:id/requests/:rid', requirePlayer, wrap(async (req, res) =>
   res.status(400).json({ ok: false, msg: '无效操作（accept / reject）' });
 }));
 
-app.post('/api/teams/:id/leave', requirePlayer, wrap(async (req, res) => {
+app.post('/api/teams/:id/leave', requireParticipant, wrap(async (req, res) => {
   const team = await store.get('SELECT * FROM teams WHERE id = ?', parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在' });
   if (team.leader_id === req.user.player_id) return res.status(409).json({ ok: false, msg: '队长不能退出，可解散队伍' });
@@ -802,7 +817,7 @@ app.post('/api/teams/:id/leave', requirePlayer, wrap(async (req, res) => {
   res.json({ ok: true, msg: '已退出队伍' });
 }));
 
-app.post('/api/teams/:id/disband', requirePlayer, wrap(async (req, res) => {
+app.post('/api/teams/:id/disband', requireParticipant, wrap(async (req, res) => {
   const team = await store.get('SELECT * FROM teams WHERE id = ?', parseInt(req.params.id, 10));
   if (!team) return res.status(404).json({ ok: false, msg: '队伍不存在' });
   if (team.leader_id !== req.user.player_id) return res.status(403).json({ ok: false, msg: '只有队长可以解散队伍' });
@@ -867,7 +882,7 @@ app.get('/api/pool', wrap(async (req, res) => {
   res.json({ ok: true, waiting, me });
 }));
 
-app.post('/api/pool/join', requirePlayer, wrap(async (req, res) => {
+app.post('/api/pool/join', requireParticipant, wrap(async (req, res) => {
   const pid = req.user.player_id;
   const inActive = await store.get(
     "SELECT COUNT(*) c FROM team_members m JOIN teams t ON t.id = m.team_id WHERE m.player_id = ? AND t.status != 'disbanded'", pid);
@@ -880,7 +895,7 @@ app.post('/api/pool/join', requirePlayer, wrap(async (req, res) => {
   res.json({ ok: true, msg: '已进入等待池，组委会将协助补位' });
 }));
 
-app.post('/api/pool/leave', requirePlayer, wrap(async (req, res) => {
+app.post('/api/pool/leave', requireParticipant, wrap(async (req, res) => {
   await store.run('DELETE FROM waiting_pool WHERE player_id = ?', req.user.player_id);
   res.json({ ok: true, msg: '已退出等待池' });
 }));
@@ -1031,18 +1046,19 @@ app.post('/api/admin/players', requireAdmin, wrap(async (req, res) => {
   res.json({ ok: true, id: Number(r.lastInsertRowid) });
 }));
 app.put('/api/admin/players/:id', requireAdmin, wrap(async (req, res) => {
-  const { name, nickname, role, grade, dorm, intro, tags, wechat, avatar, status, contact } = req.body || {};
+  const { name, nickname, role, grade, dorm, intro, tags, wechat, avatar, status, contact, identity } = req.body || {};
   const cur = await store.get('SELECT * FROM players WHERE id = ?', parseInt(req.params.id, 10));
   if (!cur) return res.status(404).json({ ok: false, msg: '选手不存在' });
   const next = {
     name: name ?? cur.name, nickname: nickname ?? cur.nickname,
     role: role ?? cur.role, grade: grade ?? cur.grade, dorm: dorm ?? cur.dorm,
     intro: intro ?? cur.intro, tags: tags ?? cur.tags, wechat: wechat ?? cur.wechat,
-    avatar: avatar ?? cur.avatar, status: status ?? cur.status
+    avatar: avatar ?? cur.avatar, status: status ?? cur.status,
+    identity: (identity && ['participant', 'judge', 'observer'].includes(identity)) ? identity : (cur.identity || 'participant')
   };
-  await store.run('UPDATE players SET name=?, nickname=?, role=?, grade=?, dorm=?, intro=?, tags=?, wechat=?, avatar=?, status=? WHERE id=?',
+  await store.run('UPDATE players SET name=?, nickname=?, role=?, grade=?, dorm=?, intro=?, tags=?, wechat=?, avatar=?, status=?, identity=? WHERE id=?',
     next.name, next.nickname || '', next.role || '', next.grade || '', next.dorm || '',
-    next.intro || '', next.tags || '', next.wechat || '', next.avatar || '', next.status || 'unclaimed', parseInt(req.params.id, 10));
+    next.intro || '', next.tags || '', next.wechat || '', next.avatar || '', next.status || 'unclaimed', next.identity, parseInt(req.params.id, 10));
   if (contact !== undefined && String(contact) !== (decContact(cur.contact) || '')) {
     await store.run('UPDATE players SET contact = ? WHERE id = ?', encContact(String(contact)), parseInt(req.params.id, 10));
   }

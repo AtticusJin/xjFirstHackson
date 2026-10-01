@@ -1027,14 +1027,15 @@ function renderTeams() {
   const wrap = document.getElementById('createWrap');
   const mePlayer = ME && ME.user.player;
   const inTeam = !!mePlayer && teams.some(t => t.my_role === 'leader' || t.my_role === 'member');
+  const notParticipant = !!mePlayer && mePlayer.identity && mePlayer.identity !== 'participant';
   if (!ME) {
     wrap.style.display = 'none';
   } else {
     wrap.style.display = 'block';
     const btn = document.getElementById('btnCreateTeam');
-    btn.disabled = !!inTeam;
-    btn.innerHTML = inTeam ? '✓ 已在小队中（创建锁定）' : '＋ 创建小队';
-    btn.style.opacity = inTeam ? '.45' : '1';
+    btn.disabled = !!inTeam || !!notParticipant;
+    btn.innerHTML = notParticipant ? (mePlayer.identity === 'judge' ? '评委无法创建小队' : '观察员无法创建小队') : (inTeam ? '✓ 已在小队中（创建锁定）' : '＋ 创建小队');
+    btn.style.opacity = (inTeam || notParticipant) ? '.45' : '1';
     document.getElementById('inTeamHint').style.display = inTeam ? 'block' : 'none';
   }
   if (!teams.length) {
